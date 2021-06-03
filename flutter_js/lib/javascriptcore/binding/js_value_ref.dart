@@ -300,9 +300,9 @@ final int Function(JSContextRef ctx, JSValueRef value) jSValueToBoolean = jscLib
 /// [value] (JSValueRef) The JSValue to convert.
 /// [exception] (JSValueRef*) A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
 /// [@result] (double) The numeric result of conversion, or NaN if an exception is thrown.
-final double Function(JSContextRef ctx, JSValueRef value, JSValueRefRef exception)
+final double? Function(JSContextRef ctx, JSValueRef value, JSValueRefRef exception)
     jSValueToNumber = jscLib!
-        .lookup<NativeFunction<Double Function(JSContextRef, JSValueRef, JSValueRefRef)>>(
+        .lookup<NativeFunction<Double? Function(JSContextRef, JSValueRef, JSValueRefRef)>>(
             'JSValueToNumber')
         .asFunction();
 

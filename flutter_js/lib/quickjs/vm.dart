@@ -8,8 +8,7 @@ import 'package:ffi/ffi.dart';
 import '../error.dart';
 import 'qjs_ffi.dart';
 import '../lifetime.dart';
-
-const DART_UNDEFINED = #Undefined;
+export '../types.dart' show DART_UNDEFINED, JSToDartFunction;
 
 class SuccessOrFail<S, F> {
   S? value;
@@ -178,9 +177,6 @@ typedef VmFunctionImplementation
     = /*VmHandle | VmCallResult<VmHandle> | void*/ dynamic
         Function(List<Lifetime> args, {Lifetime? thisObj});
 
-/// The type representing JS function values transferred to Dart value.
-typedef JSToDartFunction = dynamic Function(List<JSValuePointer> args, {JSValuePointer? thisObj});
-
 /**
  * Used as an optional for the results of executing pendingJobs.
  * On success, `value` contains the number of async jobs executed
@@ -240,11 +236,11 @@ class QuickJSVm implements Disposable {
       _initialized = true;
     }
 
-    _rt = _scope.manage(Lifetime(JS_NewRuntime(), null, (rt_ptr) {
+    _rt = _scope.manage(Lifetime(JS_NewRuntime(), (rt_ptr) {
       _rtMap.remove(rt_ptr);
       JS_FreeRuntime(rt_ptr);
     }));
-    _ctx = _scope.manage(Lifetime(JS_NewContext(_rt.value), null, (ctx_ptr) {
+    _ctx = _scope.manage(Lifetime(JS_NewContext(_rt.value), (ctx_ptr) {
       _vmMap.remove(ctx_ptr);
       JS_FreeContext(ctx_ptr);
     }));
@@ -324,7 +320,7 @@ class QuickJSVm implements Disposable {
     // This isn't technically a static lifetime, but since it has the same
     // lifetime as the VM, it's okay to fake one since when the VM is
     // disposed, no other functions will accept the value.
-    _global = new StaticLifetime(ptr, this);
+    _global = new StaticLifetime(ptr);
     return _global!;
   }
 
@@ -373,8 +369,12 @@ class QuickJSVm implements Disposable {
   QuickJSHandle newString(String value) {
     final utf8str = value.toNativeUtf8();
     final ptr = JS_NewString(ctx, utf8str);
-    malloc.free(utf8str);
+    calloc.free(utf8str);
     return this._heapValueHandle(ptr);
+  }
+
+  QuickJSHandle newDate(int timestamp) {
+    return _heapValueHandle(JS_NewDate(ctx, timestamp));
   }
 
   /**
@@ -394,35 +394,40 @@ class QuickJSVm implements Disposable {
    * `[]`.
    * Create a new QuickJS [array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array).
    */
-  QuickJSHandle newArray() {
+  QuickJSHandle newArray([List<JSValuePointer>? args]) {
     final ptr = JS_NewArray(_ctx.value);
+    if(args != null) {
+      for(int i = 0;i<args.length;i++) {
+        defineProperty(ptr, i, VmPropertyDescriptor(value: args[i]));
+      }
+    }
     return _heapValueHandle(ptr);
   }
 
   QuickJSHandle newArrayBufferCopy(Uint8List value) {
-    final ptr = malloc<Uint8>(value.length);
+    final ptr = calloc<Uint8>(value.length);
     try {
       final byteList = ptr.asTypedList(value.length);
       byteList.setAll(0, value);
       final ret = JS_NewArrayBufferCopy(ctx, ptr, value.length);
       return _heapValueHandle(ret);
     } finally {
-      malloc.free(ptr);
+      calloc.free(ptr);
     }
   }
 
   QuickJSHandle newArrayBuffer(Uint8List value,
       [Pointer<NativeFunction<JSFreeArrayBufferDataFunc>>? freeFunc]) {
-    final ptr = malloc<Uint8>(value.length);
-    try {
-      final byteList = ptr.asTypedList(value.length);
-      byteList.setAll(0, value);
-      final ret = JS_NewArrayBuffer(
-          ctx, ptr, value.length, freeFunc ?? nullptr, nullptr, 0);
-      return _heapValueHandle(ret);
-    } finally {
-      malloc.free(ptr);
-    }
+    final ptr = calloc<Uint8>(value.length);
+    final byteList = ptr.asTypedList(value.length);
+    byteList.setAll(0, value);
+    final ret = JS_NewArrayBuffer(
+        ctx, ptr, value.length, freeFunc ?? nullptr, nullptr, 0);
+    return Lifetime(ret, (_) {
+      // ptr should not be freed until ret disposed since JS_NewArrayBufferNoCopy share the same data.
+      calloc.free(ptr);
+      _freeJSValue(_);
+    });
   }
 
   QuickJSHandle newError(dynamic error) {
@@ -511,6 +516,8 @@ class QuickJSVm implements Disposable {
    * someNativeAsyncFunction().then(deferred.resolve)
    * return deferred.handle
    * ```
+   *
+   * TODO: remove fn from map which is called only once. ie: onFulfill/onError functions for a JS promise.
    */
   QuickJSHandle newFunction(String? name, VmFunctionImplementation fn) {
     final fnId = ++_fnNextId;
@@ -521,7 +528,7 @@ class QuickJSVm implements Disposable {
     final funcHandle = this._heapValueHandle(
         JS_NewFunction(_ctx.value, fnIdHandle.value, namePtr));
     if(name != null) {
-      malloc.free(namePtr);
+      calloc.free(namePtr);
     }
 
     // We need to free fnIdHandle's pointer, but not the JSValue, which is retained inside
@@ -539,13 +546,13 @@ class QuickJSVm implements Disposable {
    * Note that the QuickJS authors recommend using [[defineProp]] to define new
    * properties.
    *
-   * @param key - The property may be specified as a JSValue handle, or as a
-   * Javascript string or number (which will be converted automatically to a JSValue).
+   * @param key - The property may be specified as a JSValuePointer.
    */
   void setProp(
       JSValuePointer obj, JSValueConstPointer key, JSValuePointer value) {
     JS_SetProp(ctx, obj, key, value);
   }
+  /// [key] is one of String, num or JSValuePointer
   void setProperty(JSValuePointer obj, dynamic key, JSValuePointer value) {
     if(key is String) {
       newString(key).consume((k) => setProp(obj, k.value, value));
@@ -565,12 +572,12 @@ class QuickJSVm implements Disposable {
    * `handle[key]`.
    * Get a property from a JSValue.
    *
-   * @param key - The property may be specified as a JSValue handle, or as a
-   * Javascript string (which will be converted automatically).
+   * @param key - The property may be specified as a JSValuePointer.
    */
   QuickJSHandle getProp(JSValuePointer obj, JSValueConstPointer key) {
     return _heapValueHandle(JS_GetProp(ctx, obj, key));
   }
+  /// [key] is one of String, num or JSValuePointer
   QuickJSHandle getProperty(JSValuePointer obj, dynamic key) {
     if(key is String) {
       return newString(key).consume((k) => getProp(obj, k.value));
@@ -587,8 +594,7 @@ class QuickJSVm implements Disposable {
   /**
    * [`Object.defineProperty(handle, key, descriptor)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty).
    *
-   * @param key - The property may be specified as a JSValue handle, or as a
-   * Javascript string or number (which will be converted automatically to a JSValue).
+   * @param key - The property may be specified as a JSValuePointer.
    */
   void defineProp(
     JSValuePointer obj,
@@ -622,6 +628,7 @@ class QuickJSVm implements Disposable {
       );
     });
   }
+  /// [key] is one of String, num or JSValuePointer
   void defineProperty(JSValuePointer obj, dynamic key, VmPropertyDescriptor<JSValuePointer> descriptor) {
     if(key is String) {
       newString(key).consume((k) => defineProp(obj, k.value, descriptor));
@@ -679,13 +686,13 @@ class QuickJSVm implements Disposable {
    */
   VmCallResult<QuickJSHandle> evalCode(String code, {String? filename}) {
     Lifetime<HeapCharPointer> codeHandle = _newHeapCharPointer(code);
-    Lifetime<HeapCharPointer>? filenameHandle = filename == null ? null : _newHeapCharPointer(filename);
+    Lifetime<HeapCharPointer>? filenameHandle = _newHeapCharPointer(filename??'<eval.js>');
     late final resultPtr;
     try {
-      resultPtr = JS_Eval(_ctx.value, codeHandle.value, codeHandle.value.length, filenameHandle?.value??nullptr, JSEvalFlag.GLOBAL);
+      resultPtr = JS_Eval(_ctx.value, codeHandle.value, codeHandle.value.length, filenameHandle.value, JSEvalFlag.GLOBAL);
     } finally {
       codeHandle.dispose();
-      filenameHandle?.dispose();
+      filenameHandle.dispose();
     }
     final errorPtr = JS_ResolveException(_ctx.value, resultPtr);
     if (errorPtr != nullptr) {
@@ -800,7 +807,7 @@ class QuickJSVm implements Disposable {
     }
     if(type == JSHandyType.js_function) {
       return (List<JSValuePointer> args, {JSValuePointer? thisObj}) {
-        return unwrapResult(callFunction(value, thisObj??nullptr, args)).consume((_) => jsToDart(_.value));
+        return unwrapResult(callFunction(value, thisObj??nullptr, args)).value/*.consume((_) => jsToDart(_.value))*/;
       };
     }
     if(type == JSHandyType.js_Date) {
@@ -808,10 +815,10 @@ class QuickJSVm implements Disposable {
       return constructDate ? DateTime.fromMillisecondsSinceEpoch(timestamp) : timestamp;
     }
     if(type == JSHandyType.js_ArrayBuffer || type == JSHandyType.js_SharedArrayBuffer) {
-      final psize = malloc<IntPtr>();
+      final psize = calloc<IntPtr>();
       final buff = JS_GetArrayBuffer(ctx, psize, value);
       Uint8List result = buff.asTypedList(psize.value);
-      malloc.free(psize);
+      calloc.free(psize);
       // Note: this value will be unavailable when the binding ArrayBuffer is freed.
       return result;
     }
@@ -872,10 +879,10 @@ class QuickJSVm implements Disposable {
     //   return result;
     // }
     if (type == JSHandyType.js_object && !jsonSerializeObject) {
-      final atomsPtrRec = malloc<IntPtr>();
+      final atomsPtrRec = calloc<IntPtr>();
       final length = JS_GetOwnPropertyNameAtoms(ctx, atomsPtrRec, value, JS_GPN_COPYABLE);
       if(length <= 0) {
-        malloc.free(atomsPtrRec);
+        calloc.free(atomsPtrRec);
         if(length < 0) {
           throw JSError('"Could not get object properties');
         }
@@ -883,7 +890,7 @@ class QuickJSVm implements Disposable {
       }
       final Map<String, dynamic> result = {};
       Pointer<Uint32> atomsPtr = Pointer<Uint32>.fromAddress(atomsPtrRec.value);
-      malloc.free(atomsPtrRec);
+      calloc.free(atomsPtrRec);
       final atoms = atomsPtr.asTypedList(length);
       for(int i = 0;i < length;i++) {
         int atom = atoms[i];
@@ -894,7 +901,7 @@ class QuickJSVm implements Disposable {
         result[key] = jsToDart(propValue);
         _freeJSValue(propValue);
       }
-      malloc.free(atomsPtr);
+      calloc.free(atomsPtr);
       return result;
     }
     // fallback
@@ -928,7 +935,7 @@ class QuickJSVm implements Disposable {
     if(value == false) {
       return $false;
     }
-    if(value is Error) {
+    if(value is Error || value is Exception) {
       return newError(value);
     }
     if(value is String) {
@@ -942,7 +949,7 @@ class QuickJSVm implements Disposable {
     }
     if(value is DateTime) {
       if(constructDate) {
-        return _heapValueHandle(JS_NewDate(ctx, value.millisecondsSinceEpoch));
+        return newDate(value.millisecondsSinceEpoch);
       }
       return newNumber(value.millisecondsSinceEpoch);
     }
@@ -950,12 +957,14 @@ class QuickJSVm implements Disposable {
       return newArrayBuffer(value is Uint8List ? value : value.buffer.asUint8List());
     }
     if(value is List) {
-      final result = newArray();
-      final array = result.value;
-      for(int i = 0;i<value.length;i++) {
-        dartToJS(value[i]).consume((lifetime) => defineProperty(array, i, VmPropertyDescriptor(value: lifetime.value)));
-      }
-      return result;
+      return Scope.withScope((scope) {
+        final result = newArray(value.map((e) => scope.manage(dartToJS(e)).value).toList());
+        // final array = result.value;
+        // for(int i = 0;i<value.length;i++) {
+        //   dartToJS(value[i]).consume((lifetime) => defineProperty(array, i, VmPropertyDescriptor(value: lifetime.value)));
+        // }
+        return result;
+      });
     }
     if(value is Future) {
       final promise = newPromise();
@@ -1094,7 +1103,7 @@ class QuickJSVm implements Disposable {
           'QuickJSVm instance received C -> JS call with mismatched ctx');
     }
 
-    final fnId = JS_GetFloat64(ctx, fn_data);
+    final fnId = JS_GetFloat64(ctx, fn_data).toInt();
     final fn = _fnMap[fnId];
     if (fn == null) {
       throw new JSError('QuickJSVm had no callback with id $fnId');
@@ -1102,11 +1111,11 @@ class QuickJSVm implements Disposable {
 
     return Scope.withScope((scope) {
       final thisHandle = scope.manage(
-          new WeakLifetime<JSValuePointer>(this_ptr, _freeJSValue, this));
+          WeakLifetime<JSValuePointer>(this_ptr, _freeJSValue));
       final List<QuickJSHandle> argHandles = [];
       for (int i = 0; i < argc; i++) {
         final ptr = JS_ArgvGetJSValueConstPointer(argv, i);
-        argHandles.add(scope.manage(new WeakLifetime(ptr, _freeJSValue, this)));
+        argHandles.add(scope.manage(WeakLifetime(ptr, _freeJSValue)));
       }
 
       JSValuePointer ownedResultPtr = nullptr;
@@ -1126,7 +1135,6 @@ class QuickJSVm implements Disposable {
         ownedResultPtr = _errorToHandle(error)
             .consume((errorHandle) => JS_Throw(_ctx.value, errorHandle.value));
       }
-
       return ownedResultPtr /* as JSValuePointer*/;
     });
   }
@@ -1158,27 +1166,27 @@ class QuickJSVm implements Disposable {
   }
 
   Lifetime<JSValuePointer> _heapValueHandle(JSValuePointer ptr) {
-    return new Lifetime(ptr, _freeJSValue, this);
+    return _scope.manage(Lifetime(ptr, _freeJSValue));
   }
 
   Lifetime<JSValueConstPointerPointer> _toPointerArray(
       List<JSValuePointer> array) {
     final JSValueConstPointerPointer ptr =
-        malloc.call<JSValueConstPointer>(array.length);
+    calloc.call<JSValueConstPointer>(array.length);
     for (int i = 0; i < array.length; i++) {
       ptr[i] = array[i];
     }
-    return new Lifetime(ptr, null, (ptr) => malloc.free(ptr));
+    return _scope.manage(Lifetime(ptr, (ptr) => calloc.free(ptr)));
   }
 
   Lifetime<JSValuePointerPointer> _newMutablePointerArray(int length) {
     final JSValuePointerPointer ptr = calloc.call<JSValuePointer>(length);
-    return new Lifetime(ptr, null, (value) => calloc.free(value));
+    return _scope.manage(Lifetime(ptr, (value) => calloc.free(value)));
   }
 
   Lifetime<HeapCharPointer> _newHeapCharPointer(String string) {
     Pointer<Utf8> ptr = string.toNativeUtf8();
-    return new Lifetime(ptr, null, (value) => malloc.free(value));
+    return _scope.manage(Lifetime(ptr, (value) => calloc.free(value)));
   }
 
   Lifetime _errorToHandle(dynamic /*Error | QuickJSHandle*/ error) {
@@ -1295,9 +1303,8 @@ class QuickJSVm implements Disposable {
     try {
       final vm = _vmMap[ctx];
       if (vm == null) {
-        final fn_name = JS_GetString(ctx, fn_data_ptr);
         throw new JSError(
-            'QuickJSVm(ctx = ${ctx}) not found for C function call "${fn_name}"');
+            'QuickJSVm(ctx = ${ctx}) not found for C function call "${fn_data_ptr}"');
       }
       return vm.cToHostCallbackFunction(ctx, this_ptr, argc, argv, fn_data_ptr);
     } catch (error) {

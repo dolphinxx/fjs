@@ -51,7 +51,8 @@ class Lifetime<T> implements Disposable {
 
   final T _value;
   final Disposer<T>? disposer;
-  final dynamic _owner;
+  // final dynamic _owner;
+  Scope? _scope;
 
   /**
    * When the Lifetime is disposed, it will call `disposer(_value)`. Use the
@@ -61,7 +62,7 @@ class Lifetime<T> implements Disposable {
    * `_owner` is not used or controlled by the lifetime. It's just metadata for
    * the creator.
    */
-  Lifetime(this._value, [this.disposer, this._owner]);
+  Lifetime(this._value, [this.disposer, /*this._owner*/this._scope]);
 
   bool get alive {
     return this._alive;
@@ -78,9 +79,9 @@ class Lifetime<T> implements Disposable {
     return this._value;
   }
 
-  dynamic get owner {
-    return this._owner;
-  }
+  // dynamic get owner {
+  //   return this._owner;
+  // }
 
   /**
    * Call `map` with this lifetime, then dispose the lifetime.
@@ -105,10 +106,13 @@ class Lifetime<T> implements Disposable {
    */
   void dispose() {
     this._assertAlive();
-    if (this.disposer != null) {
-      this.disposer!(this._value);
+    if (disposer != null) {
+      disposer!(_value);
     }
-    this._alive = false;
+    _alive = false;
+    if(_scope != null) {
+      _scope!.remove(this);
+    }
   }
 
   _assertAlive() {
@@ -122,7 +126,7 @@ class Lifetime<T> implements Disposable {
  * A Lifetime that lives forever. Used for constants.
  */
 class StaticLifetime<T> extends Lifetime<T> {
-  StaticLifetime(T value, [dynamic owner]) : super(value, null, owner);
+  StaticLifetime(T value) : super(value, null, null);
 
 // Dispose does nothing.
   void dispose() {}
@@ -138,9 +142,9 @@ class StaticLifetime<T> extends Lifetime<T> {
 class WeakLifetime<T> extends Lifetime<T> {
   WeakLifetime(
       T value,
-      Disposer<T>? disposer,
-      dynamic owner,
-      ) : super(value, disposer, owner); // We don't care if the disposer doesn't support freeing T
+      [Disposer<T>? disposer,
+      Scope? scope,]
+      ) : super(value, disposer, scope); // We don't care if the disposer doesn't support freeing T
 
   dispose() {
     this._alive = false;
@@ -200,7 +204,14 @@ class Scope implements Disposable {
    */
   T manage<T extends Disposable>(T lifetime) {
     this._disposables.add(lifetime);
+    if(lifetime is Lifetime) {
+      lifetime._scope = this;
+    }
     return lifetime;
+  }
+
+  void remove(Disposable lifetime) {
+    this._disposables.remove(lifetime);
   }
 
   bool get alive => _alive;
@@ -212,6 +223,7 @@ class Scope implements Disposable {
         lifetime.dispose();
       }
     }
+    this._disposables.clear();
     _alive = false;
   }
 }

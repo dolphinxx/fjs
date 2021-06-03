@@ -56,7 +56,8 @@ void main() {
     });
     test('function values', () {
       Scope.withScope((scope) {
-        expect(vm.evalUnsafe(r'(function(message) {return `Hello ${this}!${message}`})').consume((lifetime) => (vm.jsToDart(lifetime.value) as JSToDartFunction)([scope.manage(vm.newString("Flutter 2021!")).value], thisObj: scope.manage(vm.newString("World")).value)), "Hello World!Flutter 2021!");
+        String actual = vm.jsToDart(vm.evalUnsafe(r'(function(message) {return `Hello ${this}!${message}`})').consume((lifetime) => (vm.jsToDart(lifetime.value) as JSToDartFunction)([scope.manage(vm.newString("Flutter 2021!")).value], thisObj: scope.manage(vm.newString("World")).value))!);
+        expect(actual, "Hello World!Flutter 2021!");
       });
     });
     test('date values', () {

@@ -165,9 +165,9 @@ final JSObjectRef Function(
 /// [object] (JSObjectRef) The Array Buffer object whose internal backing store pointer to return.
 /// [exception] (JSValueRef*) A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
 /// [@result] (void*) A pointer to the raw data buffer that serves as object's backing store or NULL if object is not an Array Buffer object.
-final Pointer Function(JSContextRef ctx, JSObjectRef object, JSValueRefRef exception)
+final Pointer<Uint8> Function(JSContextRef ctx, JSObjectRef object, JSValueRefRef exception)
     jSObjectGetArrayBufferBytesPtr = jscLib!
-        .lookup<NativeFunction<Pointer Function(JSContextRef, JSObjectRef, JSValueRefRef)>>(
+        .lookup<NativeFunction<Pointer<Uint8> Function(JSContextRef, JSObjectRef, JSValueRefRef)>>(
             'JSObjectGetArrayBufferBytesPtr')
         .asFunction();
 
@@ -178,6 +178,6 @@ final Pointer Function(JSContextRef ctx, JSObjectRef object, JSValueRefRef excep
 /// [@result] (size_t) The number of bytes stored in the data object.
 final int Function(JSContextRef ctx, JSObjectRef object, JSValueRefRef exception)
     jSObjectGetArrayBufferByteLength = jscLib!
-        .lookup<NativeFunction<Uint32 Function(JSContextRef, JSObjectRef, JSValueRefRef)>>(
+        .lookup<NativeFunction<IntPtr Function(JSContextRef, JSObjectRef, JSValueRefRef)>>(
             'JSObjectGetArrayBufferByteLength')
         .asFunction();

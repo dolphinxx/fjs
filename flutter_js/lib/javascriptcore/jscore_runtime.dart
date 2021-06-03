@@ -31,7 +31,7 @@ class JavascriptCoreRuntime extends JavascriptRuntime {
 
   @override
   T evaluate<T>(String js, {String? name}) {
-    final jsValueRef = _context.jsEval(js, name: name).value;
+    final jsValueRef = _context.eval(js, name: name).value;
     return _context.jsToDart(jsValueRef);
   }
 

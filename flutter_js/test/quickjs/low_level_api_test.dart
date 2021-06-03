@@ -9,7 +9,7 @@ import 'dart:ffi';
 import 'package:ffi/ffi.dart';
 
 void main() {
-  group('api_test', () {
+  group('low_level_api_test', () {
     late QuickJSVm vm;
     setUp(() {
       vm = QuickJSVm();

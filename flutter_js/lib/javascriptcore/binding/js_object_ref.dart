@@ -154,9 +154,9 @@ typedef JSObjectDeletePropertyCallbackDart = int Function(JSContextRef ctx,
 /// Use JSPropertyNameAccumulatorAddName to add property names to accumulator. A class's getPropertyNames callback only needs to provide the names of properties that the class vends through a custom getProperty or setProperty callback. Other properties, including statically declared properties, properties vended by other classes, and properties belonging to object's prototype, are added independently.
 /// typedef void (*JSObjectGetPropertyNamesCallback) (JSContextRef ctx, JSObjectRef object, JSPropertyNameAccumulatorRef propertyNames);
 typedef JSObjectGetPropertyNamesCallback = Void Function(
-    JSContextRef ctx, JSObjectRef object, JSStringRef propertyNames);
+    JSContextRef ctx, JSObjectRef object, Pointer propertyNames);
 typedef JSObjectGetPropertyNamesCallbackDart = void Function(
-    JSContextRef ctx, JSObjectRef object, JSStringRef propertyNames);
+    JSContextRef ctx, JSObjectRef object, Pointer propertyNames);
 
 /// typedef JSObjectCallAsFunctionCallback
 /// The callback invoked when an object is called as a function.
@@ -175,14 +175,14 @@ typedef JSObjectGetPropertyNamesCallbackDart = void Function(
 ///
 /// If this callback is NULL, calling your object as a function will throw an exception.
 /// typedef JSValueRef (*JSObjectCallAsFunctionCallback) (JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception);
-typedef JSObjectCallAsFunctionCallback = Pointer<Pointer> Function(
+typedef JSObjectCallAsFunctionCallback = JSValueRef Function(
     JSContextRef ctx,
     JSObjectRef function,
     JSObjectRef thisObject,
-    Uint32 argumentCount,
+    IntPtr argumentCount,
     JSValueRefArray arguments,
     JSValueRefRef exception);
-typedef JSObjectCallAsFunctionCallbackDart = Pointer Function(
+typedef JSObjectCallAsFunctionCallbackDart = JSValueRef Function(
     JSContextRef ctx,
     JSObjectRef function,
     JSObjectRef thisObject,

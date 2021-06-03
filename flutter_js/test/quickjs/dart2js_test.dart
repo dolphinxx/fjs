@@ -61,7 +61,16 @@ void main() {
       });
     });
     test('arraybuffer values', () {
-      vm.dartToJS(Uint8List.fromList([1,2,3,4,5,6])).consume((_) {
+      Uint8List data = Uint8List.fromList([1,2,3,4,5,6]);
+      vm.dartToJS(data).consume((_) {
+        vm.setProperty(vm.global.value, 'test', _.value);
+        vm.evalUnsafe(r'''
+        if(!(test instanceof ArrayBuffer)) throw "instanceof ArrayBuffer";
+        if(test.byteLength !== 6) throw `expected byteLength=6, actual ${test.byteLength}`;
+        var ub = new Uint8Array(test);if(ub[5] !== 6) throw `value in index 5 expected 6, actual ${ub[5]}, ${ub.toString()}`;
+        ''').dispose();
+      });
+      vm.dartToJS(data).consume((_) {
         vm.setProperty(vm.global.value, 'test', _.value);
         vm.evalUnsafe(r'''
         if(!(test instanceof ArrayBuffer)) throw "instanceof ArrayBuffer";

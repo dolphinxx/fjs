@@ -54,3 +54,10 @@ typedef JSValueConstPointerPointer = Pointer<Pointer<JSValueConstOpaque>>;
 typedef HeapCharPointer = Pointer<Utf8> /*Pointer<'char'>*/;
 
 typedef HeapUnicodeCharPointer = Pointer<Utf16>;
+
+/// The type representing JS function values transferred to Dart value.
+///
+/// result type: JSValueRef | void
+typedef JSToDartFunction = JSValuePointer? Function(List<JSValuePointer> args, {JSValuePointer? thisObj});
+
+const DART_UNDEFINED = #Undefined;
