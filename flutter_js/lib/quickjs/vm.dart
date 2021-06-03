@@ -175,7 +175,7 @@ typedef QuickJSHandle = Lifetime<JSValuePointer>;
  */
 typedef VmFunctionImplementation
     = /*VmHandle | VmCallResult<VmHandle> | void*/ dynamic
-        Function(List<Lifetime> args, {Lifetime? thisObj});
+        Function(List<JSValuePointer> args, {JSValuePointer? thisObj});
 
 /**
  * Used as an optional for the results of executing pendingJobs.
@@ -835,10 +835,10 @@ class QuickJSVm implements Disposable {
       Completer completer = Completer();
       final thenPtr = getProperty(value, 'then');
       final onFulfilled = newFunction(null, (args, {thisObj}) {
-        completer.complete(args.isEmpty ? null : jsToDart(args[0].value));
+        completer.complete(args.isEmpty ? null : jsToDart(args[0]));
       });
       final onError = newFunction(null, (args, {thisObj}) {
-        var error = jsToDart(args[0].value);
+        var error = jsToDart(args[0]);
         completer.completeError(error is JSError ? error : JSError(error.toString()));
       });
       try {
@@ -1111,11 +1111,11 @@ class QuickJSVm implements Disposable {
 
     return Scope.withScope((scope) {
       final thisHandle = scope.manage(
-          WeakLifetime<JSValuePointer>(this_ptr, _freeJSValue));
-      final List<QuickJSHandle> argHandles = [];
+          WeakLifetime<JSValuePointer>(this_ptr, _freeJSValue)).value;
+      final List<JSValuePointer> argHandles = [];
       for (int i = 0; i < argc; i++) {
         final ptr = JS_ArgvGetJSValueConstPointer(argv, i);
-        argHandles.add(scope.manage(WeakLifetime(ptr, _freeJSValue)));
+        argHandles.add(scope.manage(WeakLifetime(ptr, _freeJSValue)).value);
       }
 
       JSValuePointer ownedResultPtr = nullptr;

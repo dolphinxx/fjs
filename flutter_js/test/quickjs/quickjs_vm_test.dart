@@ -87,7 +87,7 @@ void main() {
       test('can wrap a Javascript function and call it', () {
         final some = 9;
         final fnHandle = vm.newFunction('addSome', (args, {thisObj}) {
-          return vm.newNumber(some + vm.getNumber(args[0].value)!);
+          return vm.newNumber(some + vm.getNumber(args[0])!);
         });
         final result = vm.callFunction(
             fnHandle.value, vm.$undefined.value, [vm.newNumber(1).value]);
@@ -136,7 +136,7 @@ void main() {
         QuickJSHandle? value;
 
         final fnHandle = vm.newFunction('doSomething', (args, {thisObj}) {
-          value = vm.copyJSValue(args.first.value);
+          value = vm.copyJSValue(args.first);
         });
 
         final argHandle = vm.newString('something');
@@ -299,7 +299,7 @@ void main() {
         expect(vm.dump(result.error!.value), {
           'name': 'SyntaxError',
           'message': 'unexpected end of string',
-          'stack': '    at eval.js:1\n',
+          'stack': '    at <eval.js>:1\n',
         });
         result.error!.dispose();
       });

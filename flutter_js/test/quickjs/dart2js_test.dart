@@ -81,7 +81,7 @@ void main() {
     });
     test('function values', () {
       VmFunctionImplementation fn = (args, {thisObj}) {
-        return vm.newString(args[0].consume((_) => 'Hello ${vm.jsToDart(_.value)}!'));
+        return vm.newString('Hello ${vm.jsToDart(args[0])}!');
       };
       vm.dartToJS(fn).consume((_) {
         vm.setProperty(vm.global.value, 'test', _.value);
