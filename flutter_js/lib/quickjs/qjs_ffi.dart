@@ -42,7 +42,7 @@ typedef JSAtom = Uint32;
  */
 typedef JSRuntimePointer = Pointer<JSRuntimeOpaque>;
 
-typedef C_To_HostCallbackFunc = JSValuePointer Function(JSContextPointer ctx, JSValuePointer this_ptr, Uint32 argc, JSValuePointer argv,
+typedef C_To_HostCallbackFunc = JSValuePointer? Function(JSContextPointer ctx, JSValuePointer this_ptr, Uint32 argc, JSValuePointer argv,
     JSValuePointer fn_data_ptr);
 
 /**

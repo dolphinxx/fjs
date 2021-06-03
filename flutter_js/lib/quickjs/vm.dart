@@ -4,6 +4,7 @@ import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart';
 
 import '../error.dart';
 import 'qjs_ffi.dart';
@@ -212,6 +213,9 @@ class QuickJSVm implements Disposable {
   /// Whether to auto construct DateTime for JS Date values.
   bool constructDate = true;
 
+  /// Disable Console.log when `kRelease == true`
+  bool disableConsoleInRelease = true;
+
   QuickJSVm() {
     if (!_initialized) {
       final QJS_C_To_HostCallbackFuncPointer funcCallbackFp =
@@ -246,6 +250,30 @@ class QuickJSVm implements Disposable {
     }));
     _vmMap[_ctx.value] = this;
     _rtMap[_rt.value] = this;
+
+    _setupConsole();
+  }
+
+  void _setupConsole() {
+    Scope.withScope((scope) {
+      final QuickJSHandle console = scope.manage(newObject());
+      setProperty(global.value, 'console', console.value);
+      VmFunctionImplementation logFn = (List<JSValuePointer> args, {JSValuePointer? thisObj}) {
+        if(disableConsoleInRelease && kReleaseMode) {
+          return;
+        }
+        String msg = args.map((_) {
+          try {
+            return jsToDart(_);
+          } catch(e) {
+            return '<toString failed>';
+          }
+        }).join(' ');
+        print(msg);
+      };
+      final QuickJSHandle log = scope.manage(newFunction(null, logFn));
+      setProperty(console.value, 'log', log.value);
+    });
   }
 
   /**
@@ -851,6 +879,10 @@ class QuickJSVm implements Disposable {
         onError.dispose();
       }
     }
+    // call toString to Symbol value returns undefined.
+    if(type == JSHandyType.js_Symbol) {
+      return null;
+    }
     // if (type == JSHandyType.kObject) {
     //   final ptab = malloc<IntPtr>();
     //   final plen = malloc<Uint32>();
@@ -1294,7 +1326,7 @@ class QuickJSVm implements Disposable {
 
   /// We need to send this into C-land
   /// CToHostCallbackFunctionImplementation
-  static JSValuePointer _cToHostCallbackFunction(
+  static JSValuePointer? _cToHostCallbackFunction(
       JSContextPointer ctx,
       JSValuePointer this_ptr,
       int argc,

@@ -4,6 +4,7 @@ import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart';
 import '../error.dart';
 import '../lifetime.dart';
 import './binding/js_base.dart';
@@ -172,6 +173,9 @@ class JavaScriptCoreVm extends Disposable {
   /// Whether to auto construct DateTime for JS Date values.
   bool constructDate = true;
 
+  /// Disable Console.log when `kRelease == true`
+  bool disableConsoleInRelease = true;
+
   JavaScriptCoreVm() {
     ctx = jSGlobalContextCreate(nullptr);
     _scope.manage(Lifetime<JSContextRef>(ctx, (_) {
@@ -179,6 +183,7 @@ class JavaScriptCoreVm extends Disposable {
     }));
     _vmMap[ctx] = this;
     _init();
+    _setupConsole();
   }
 
   void _init() {
@@ -239,6 +244,26 @@ return 0
       JSValueRef result = jSObjectCallAsFunction(ctx, _handyTypeof, nullptr, 1, argv,exception);
       return jSValueToNumber(ctx, result, nullptr)!.toInt();
     }, () => calloc.free(argv));
+  }
+
+  void _setupConsole() {
+    final JSValueRef console = newObject();
+    setProperty(global, 'console', console);
+    JSToDartFunction logFn = (List<JSValuePointer> args, {JSValuePointer? thisObj}) {
+      if(disableConsoleInRelease && kReleaseMode) {
+        return;
+      }
+      String msg = args.map((_) {
+        try {
+          return jsToDart(_);
+        } catch(e) {
+          return '<toString failed>';
+        }
+      }).join(' ');
+      print(msg);
+    };
+    final JSValueRef log = newFunction(null, logFn);
+    setProperty(console, 'log', log);
   }
 
   /**
@@ -504,7 +529,7 @@ return 0
   JSValueRef evalCode(String code, {String? filename}) {
     JSStringRef codeRef = newStringRef(code);
     JSStringRef filenameRef = filename == null ? nullptr : newStringRef(filename);
-    return runWithExceptionHandle((exception) => jSEvaluateScript(ctx, codeRef, nullptr, filenameRef, 0, exception));
+    return runWithExceptionHandle((exception) => jSEvaluateScript(ctx, codeRef, nullptr, filenameRef, 0, exception)??$undefined);
   }
 
   bool get alive {
@@ -595,11 +620,13 @@ return 0
         completer.completeError(
             error is JSError ? error : JSError(error.toString()));
       });
-      try {
-        callFunction(thenPtr, value, [onFulfilled, onError]);
-        // complete when the promise is resolved/rejected.
-        return completer.future;
-      } finally {}
+      callFunction(thenPtr, value, [onFulfilled, onError]);
+      // complete when the promise is resolved/rejected.
+      return completer.future;
+    }
+    // call toString to Symbol value returns undefined.
+    if(type == JSHandyType.js_Symbol) {
+      return null;
     }
     if (type == JSHandyType.js_object && !jsonSerializeObject) {
         final propNamesPtr = jSObjectCopyPropertyNames(ctx, jsValueRef);
@@ -969,7 +996,7 @@ return 0
   var _fnNextId = 0;
   var _fnMap = new Map<int, JSToDartFunction>();
 
-  JSValuePointer cToHostCallbackFunction(JSContextRef ctx, JSObjectRef thisObj, int argc, JSValueRefArray argv, JSValueRefRef exception) {
+  JSValuePointer? cToHostCallbackFunction(JSContextRef ctx, JSObjectRef thisObj, int argc, JSValueRefArray argv, JSValueRefRef exception) {
     try {
       if(argc == 0) {
         throw 'cToHostCallbackFunction call missing fnId';
@@ -990,7 +1017,7 @@ return 0
     }
   }
 
-  static JSValueRef _cToHostCallbackFunction(
+  static JSValueRef? _cToHostCallbackFunction(
       JSContextRef ctx,
       JSObjectRef function,
       JSObjectRef thisObject,

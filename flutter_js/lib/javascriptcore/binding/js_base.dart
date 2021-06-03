@@ -17,7 +17,7 @@ typedef JSTypedArrayBytesDeallocatorDart = void Function(
 /// [startingLineNumber] (int) An integer value specifying the script's starting line number in the file located at sourceURL. This is only used when reporting exceptions. The value is one-based, so the first line is line 1 and invalid values are clamped to 1.
 /// [exception] (JSValueRef*) A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
 /// [@result] (JSValueRef) The JSValue that results from evaluating script, or NULL if an exception is thrown.
-final JSValueRef Function(JSContextRef ctx, JSStringRef script, JSObjectRef thisObject,
+final JSValueRef? Function(JSContextRef ctx, JSStringRef script, JSObjectRef thisObject,
     JSStringRef sourceURL, int startingLineNumber, JSValueRefRef? exception)
     jSEvaluateScript = jscLib!
         .lookup<
