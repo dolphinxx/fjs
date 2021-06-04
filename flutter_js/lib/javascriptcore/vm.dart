@@ -279,7 +279,8 @@ return 0
       _timeoutMap[id] = Future.delayed(Duration(milliseconds: ms), () {
         if(_timeoutMap.containsKey(id)) {
           _timeoutMap.remove(id);
-          // TODO: error handle
+          // Note: Prefer try/catch exception inside setTimeout callback function.
+          // Here we just ignore the exception.
           jSObjectCallAsFunction(ctx, fn, nullptr, 0, nullptr, nullptr);
         }
         jSValueUnprotect(ctx, fn);

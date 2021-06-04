@@ -75,12 +75,9 @@ void main() {
       expect(output, '1024');
     }));
     test('JavaScriptCore setTimeout throw', () async {
+      // Exception is ignored in JavaScriptCore implementation, need to try/catch exception inside the setTimeout callback by your self.
       vm.evalCode('setTimeout(function() {throw "Expected error."}, 1000)');
       await Future.delayed(Duration(milliseconds: 2000));
-      // JSValuePointer exception = JS_GetException(vm.ctx);
-      // String actual = vm.getString(exception);
-      // JS_FreeValuePointer(vm.ctx, exception);
-      // expect(actual, 'Expected error.');
     });
     test('JavaScriptCore clearTimeout', capturePrint(() async {
       int id = vm.getInt(vm.evalCode('setTimeout(() => console.log(1024), 2000)'))!;
