@@ -562,11 +562,11 @@ void QJS_TestStringArg(const char *string) {
     uint32_t *cp = (uint32_t*)malloc(sizeof(uint32_t) * len);
     for(int i = 0;i<len;i++) {
       cp[i] = ptab[i].atom;
-	  printf("atom[%d]:%d\n", i, cp[i]);
+	  //printf("atom[%d]:%d\n", i, cp[i]);
     }
     dart_free_prop_enums(ctx, ptab, len);
     *patoms = (intptr_t)cp;
-    printf("patoms:%Id\n", *patoms);
+    //printf("patoms:%Id\n", *patoms);
     return len;
   }
 
@@ -740,6 +740,68 @@ void QJS_TestStringArg(const char *string) {
 
   JSValue* QJS_GetException(JSContext *ctx) {
     return jsvalue_to_heap(JS_GetException(ctx));
+  }
+
+  /* for test */
+  void print_exception(JSContext *ctx, JSValue val) {
+      JSValue exception = JS_GetException(ctx);
+      JS_FreeValue(ctx, val);
+      const char* error = JS_ToCString(ctx, exception);
+      JS_FreeValue(ctx, exception);
+      printf("Error:\n%s\n", error);
+      JS_FreeCString(ctx, error);
+  }
+
+  typedef uint8_t QJS_Module_Loader(JSContext* ctx, char **buff, size_t *len, const char* module_name);
+  QJS_Module_Loader *qjs_module_loader = NULL;
+
+  JSModuleDef *js_module_loader(JSContext *ctx,
+                                const char *module_name, void *opaque)
+  {
+      if (qjs_module_loader == NULL) {
+          JS_ThrowReferenceError(ctx, "module loader not set");
+          return NULL;
+      }
+    JSModuleDef *m;
+    size_t buf_len = 0;
+    char**buf = (char**)malloc(sizeof(char *));
+    JSValue func_val;
+    uint8_t result = qjs_module_loader(ctx, buf, &buf_len, module_name);
+    //printf("qjs_module_loader result %d, buf_len:%Id\n", result, buf_len);
+    //printf("module source:\n%s\n", *buf);
+
+    if(result == 0) {
+      //printf("could not load module filename '%s'", module_name);
+      JS_ThrowReferenceError(ctx, "could not load module filename '%s'", module_name);
+      return NULL;
+    }
+    /* compile the module */
+    func_val = JS_Eval(ctx, *buf, buf_len, module_name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+    js_free(ctx, buf);
+    if (JS_IsException(func_val)) {
+        //print_exception(ctx, func_val);
+        return NULL;
+    }
+
+    /* the module is already referenced, so we must free it */
+    m = (JSModuleDef*)JS_VALUE_GET_PTR(func_val);
+    JSValue meta_obj = JS_GetImportMeta(ctx, m);
+    if (JS_IsException(meta_obj)) {
+        //print_exception(ctx, meta_obj);
+        return NULL;
+    }
+
+    // simply use module_name as url
+    JS_DefinePropertyValueStr(ctx, meta_obj, "url", JS_NewString(ctx, module_name), JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, meta_obj, "main", JS_NewBool(ctx, 0), JS_PROP_C_W_E);
+    JS_FreeValue(ctx, meta_obj);
+    JS_FreeValue(ctx, func_val);
+    return m;
+  }
+
+ void QJS_SetModuleLoaderFunc(JSRuntime* rt, QJS_Module_Loader *handler) {
+    qjs_module_loader = handler;
+    JS_SetModuleLoaderFunc(rt, NULL, &js_module_loader, NULL);
   }
 
   const char* hello_world() {

@@ -8,13 +8,14 @@
 
 extern "C"
 {
+
     void eval(JSContext* ctx, const char* buf, int buf_len) {
         
         JSValue val = JS_Eval(ctx, buf, buf_len, "<eval>", JS_EVAL_TYPE_GLOBAL);
         if (JS_IsException(val)) {
             JSValue exception = JS_GetException(ctx);
             JS_FreeValue(ctx, val);
-            const char* error = JS_ToCString(ctx, val);
+            const char* error = JS_ToCString(ctx, exception);
             JS_FreeValue(ctx, exception);
             printf("Eval error:\n%s", error);
             JS_FreeCString(ctx, error);
@@ -36,7 +37,7 @@ extern "C"
         if (JS_IsException(val)) {
             JSValue exception = JS_GetException(ctx);
             JS_FreeValue(ctx, val);
-            const char* error = JS_ToCString(ctx, val);
+            const char* error = JS_ToCString(ctx, exception);
             JS_FreeValue(ctx, exception);
             printf("Eval error:\n%s", error);
             JS_FreeCString(ctx, error);
@@ -53,7 +54,7 @@ extern "C"
         if (JS_IsException(val)) {
             JSValue exception = JS_GetException(ctx);
             //JS_FreeValue(ctx, val);
-            const char* error = JS_ToCString(ctx, val);
+            const char* error = JS_ToCString(ctx, exception);
             JS_FreeValue(ctx, exception);
             printf("Eval error:\n%s\n", error);
             JS_FreeCString(ctx, error);
@@ -267,6 +268,60 @@ extern "C"
         JS_FreeValue(ctx, *date);
     }
 
+    uint8_t hello_module_loader(JSContext* ctx, char** buff, size_t* len, const char* module_name) {
+        char* source = "export function hello(val) {return `Hello ${val}`;}";
+        *buff = source;
+        size_t l = strlen(source);
+        *len = l;
+        return 1;
+    }
+
+    void test_ModuleLoader(JSRuntime *rt, JSContext* ctx) {
+        QJS_SetModuleLoaderFunc(rt, &hello_module_loader);
+        const char* code = "import {hello} from \"my_module\";print(hello('world'));globalThis.result = hello('world')";
+        JSValue val = JS_Eval(ctx, code, strlen(code), "<eval>", JS_EVAL_TYPE_MODULE);
+        //JS_FreeValue(ctx, val);
+        //const char* code2 = "hello('world')";
+        //val = JS_Eval(ctx, code2, strlen(code2), "<eval>", JS_EVAL_TYPE_GLOBAL);
+
+        if (JS_IsException(val)) {
+            JSValue exception = JS_GetException(ctx);
+            JS_FreeValue(ctx, val);
+            const char* error = JS_ToCString(ctx, exception);
+            JS_FreeValue(ctx, exception);
+            printf("Eval error:\n%s", error);
+            JS_FreeCString(ctx, error);
+            return;
+        }
+
+        char* type = QJS_GetString(ctx, &val);
+        printf("result: %s", type);
+        JS_FreeValue(ctx, val);
+        free(type);
+
+        JSValue global = JS_GetGlobalObject(ctx);
+        JSValue result = JS_GetPropertyStr(ctx, global, "result");
+        char * res = QJS_GetString(ctx, &result);
+        printf("res:%s", res);
+        JS_FreeValue(ctx, global);
+        JS_FreeValue(ctx, result);
+    }
+    
+    JSValue js_print(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+        const char * dump = QJS_Dump(ctx, &(argv[0]));
+        //JS_FreeValue(ctx, this_val);
+        //for (int i = 0; i < argc; i++) {
+        //    JS_FreeValue(ctx, argv[i]);
+        //}
+        printf("%s\n", dump);
+        return JS_UNDEFINED;
+    }
+    void setup_js_print(JSContext *ctx) {
+        const char* fnName = "print";
+        JSValue global = JS_GetGlobalObject(ctx);
+        JS_SetPropertyStr(ctx, global, "print", JS_NewCFunction(ctx, &js_print, fnName, 1));
+        JS_FreeValue(ctx, global);
+    }
   int main()
   {
       //hello_world();
@@ -280,9 +335,12 @@ extern "C"
       JSContext* ctx;
       rt = JS_NewRuntime();
       ctx = JS_NewContext(rt);
+      setup_js_print(ctx);
+      
+      
 
-
-      test_NewDate(ctx);
+      test_ModuleLoader(rt, ctx);
+      //test_NewDate(ctx);
       //test_NewArrayBuffer(ctx);
       //testHandyTypeof(ctx);
       //const char* str = "'12'";

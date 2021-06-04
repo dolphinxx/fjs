@@ -57,3 +57,4 @@ EXPORTS
    QJS_GetProperty
    QJS_HandyTypeof
    QJS_GetException
+   QJS_SetModuleLoaderFunc

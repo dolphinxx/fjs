@@ -498,3 +498,18 @@ final JS_GetException = dylib.lookupFunction<
     JSValuePointer Function(JSContextPointer),
     JSValuePointer Function(JSContextPointer ctx)
 >('QJS_GetException');
+
+/// typedef uint8_t QJS_Module_Loader(JSContext* ctx, char** buff, size_t *len, const char* module_name)
+typedef QJS_Module_Loader = Uint8 Function(JSContextPointer ctx, Pointer<Pointer<Utf8>> buffPointer, Pointer<IntPtr> lenPointer, Pointer<Utf8> module_name);
+typedef QJS_Module_Loader_Dart = int Function(JSContextPointer ctx, Pointer<Pointer<Utf8>> buffPointer, Pointer<IntPtr> lenPointer, Pointer<Utf8> module_name);
+
+/// Set a global module handler.
+///
+/// **Note:** The eval flag must include JS_EVAL_TYPE_MODULE to support JS `import` syntax,
+/// and in this mode the return value is always `undefined`
+///
+/// void QJS_SetModuleLoaderFunc(JSRuntime* rt, QJS_Module_Loader *handler)
+final JS_SetModuleLoaderFunc = dylib.lookupFunction<
+  Void Function(JSRuntimePointer, Pointer<NativeFunction<QJS_Module_Loader>>),
+  void Function(JSRuntimePointer rt, Pointer<NativeFunction<QJS_Module_Loader>> loader)
+>('QJS_SetModuleLoaderFunc');

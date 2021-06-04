@@ -17,6 +17,12 @@ void main() {
     tearDown(() {
       vm.dispose();
     });
+    test('toString', () {
+      final ptr = vm.newNumber(1024);
+      final actual = JS_GetString(vm.ctx, ptr.value).toDartString();
+      ptr.dispose();
+      expect(actual, '1024');
+    });
     test('newString', () {
       String expected = "Hello World!";
       final ptr = vm.newString(expected);
@@ -82,5 +88,46 @@ void main() {
         handle.dispose();
       }
     });
+    test('get function from eval and invoke', () {
+      final codePtr = '(function(){return 1024;})'.toNativeUtf8();
+      final filenamePtr = '<eval.js>'.toNativeUtf8();
+      JSValuePointer fnRef = JS_Eval(vm.ctx, codePtr, codePtr.length, filenamePtr, JSEvalFlag.GLOBAL);
+      calloc.free(codePtr);
+      calloc.free(filenamePtr);
+      try {
+        HeapCharPointer typeRef = JS_Typeof(vm.ctx, fnRef);
+        String type = typeRef.toDartString();
+        malloc.free(typeRef);
+        expect(type, 'function');
+
+        JSValuePointer resultRef = JS_Call(vm.ctx, fnRef, JS_GetUndefined(), 0, nullptr);
+        double actual = JS_GetFloat64(vm.ctx, resultRef);
+        JS_FreeValuePointer(vm.ctx, resultRef);
+        expect(actual, 1024);
+      } finally {
+        JS_FreeValuePointer(vm.ctx, fnRef);
+      }
+    });
+    test('module_loader', () {
+      JS_SetModuleLoaderFunc(vm.rt, Pointer.fromFunction(moduleLoader, 0));
+      final actual = vm.evalUnsafe(r'''import { hello } from "greeting";
+      console.log(hello("Flutter"))''').consume((lifetime) => vm.jsToDart(lifetime.value));
+      expect(actual, 'Hello Flutter!');
+    });
   });
+}
+int moduleLoader(JSContextPointer ctx, Pointer<Pointer<Utf8>> buffPointer, Pointer<IntPtr> lenPointer, Pointer<Utf8> module_name) {
+  String moduleName = module_name.toDartString();
+  if(moduleName == 'greeting') {
+    print('loading module: $moduleName');
+    final source = r'''
+  export function hello(name) {
+    return `Hello ${name}!`;
+  }
+  '''.toNativeUtf8();
+    buffPointer[0] = source;
+    lenPointer.value = source.length;
+    return 1;
+  }
+  return 0;
 }
