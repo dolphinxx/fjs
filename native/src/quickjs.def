@@ -34,6 +34,7 @@ EXPORTS
    QJS_SetProp
    QJS_DefineProp
    QJS_Call
+   QJS_CallVoid
    QJS_ResolveException
    QJS_Dump
    QJS_Eval
@@ -55,3 +56,4 @@ EXPORTS
    QJS_AtomToString
    QJS_GetProperty
    QJS_HandyTypeof
+   QJS_GetException

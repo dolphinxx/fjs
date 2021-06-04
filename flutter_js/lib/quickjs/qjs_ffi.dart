@@ -268,6 +268,7 @@ final JS_DefineProp = dylib.lookupFunction<
         int enumerable,
         int has_value)>("QJS_DefineProp");
 
+/// JSValue *QJS_Call(JSContext *ctx, JSValueConst *func_obj, JSValueConst *this_obj, int argc, JSValueConst **argv_ptrs)
 final JS_Call = dylib.lookupFunction<
     JSValuePointer Function(JSContextPointer, Pointer, Pointer, Int32 argc,
         JSValueConstPointerPointer argv_ptrs),
@@ -277,6 +278,16 @@ final JS_Call = dylib.lookupFunction<
         JSValuePointer/* | JSValueConstPointer*/ this_obj,
         int argc,
         JSValueConstPointerPointer argv_ptrs)>("QJS_Call");
+/// void QJS_Call(JSContext *ctx, JSValueConst *func_obj, JSValueConst *this_obj, int argc, JSValueConst **argv_ptrs)
+final JS_CallVoid = dylib.lookupFunction<
+    Void Function(JSContextPointer, Pointer, Pointer, Int32 argc,
+        JSValueConstPointerPointer argv_ptrs),
+    void Function(
+        JSContextPointer ctx,
+        JSValuePointer/* | JSValueConstPointer*/ func_obj,
+        JSValuePointer/* | JSValueConstPointer*/ this_obj,
+        int argc,
+        JSValueConstPointerPointer argv_ptrs)>("QJS_CallVoid");
 
 final JS_ResolveException = dylib.lookupFunction<
     JSValuePointer Function(JSContextPointer, JSValuePointer),
@@ -477,3 +488,13 @@ final JS_NewDate = dylib.lookupFunction<
   JSValuePointer Function(JSContextPointer, Int64),
   JSValuePointer Function(JSContextPointer ctx, int timestamp)
 >('QJS_NewDate');
+
+/// Get the pending exception.
+///
+/// Call it only when you pretty sure there is an exception.
+///
+/// JSValue* QJS_GetException(JSContext *ctx)
+final JS_GetException = dylib.lookupFunction<
+    JSValuePointer Function(JSContextPointer),
+    JSValuePointer Function(JSContextPointer ctx)
+>('QJS_GetException');

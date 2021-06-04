@@ -186,7 +186,7 @@ typedef VmFunctionImplementation
  */
 typedef ExecutePendingJobsResult = SuccessOrFail<int, QuickJSHandle>;
 
-/// TODO: module, console.log, setTimeout
+/// TODO: module
 class QuickJSVm implements Disposable {
   static final _vmMap = Map<JSContextPointer, QuickJSVm>();
   static final _rtMap = Map<JSRuntimePointer, QuickJSVm>();
@@ -252,6 +252,7 @@ class QuickJSVm implements Disposable {
     _rtMap[_rt.value] = this;
 
     _setupConsole();
+    _setupSetTimeout();
   }
 
   void _setupConsole() {
@@ -273,6 +274,33 @@ class QuickJSVm implements Disposable {
       };
       final QuickJSHandle log = scope.manage(newFunction(null, logFn));
       setProperty(console.value, 'log', log.value);
+    });
+  }
+
+  int _timeoutNextId = 1;
+  Map<int, Future> _timeoutMap = {};
+  void _setupSetTimeout() {
+    Scope.withScope((scope) {
+      VmFunctionImplementation setTimeout = (List<JSValuePointer> args, {JSValuePointer? thisObj}) {
+        int id = _timeoutNextId++;
+        JSValuePointer fn = JS_DupValuePointer(ctx, args[0]);
+        int ms = getInt(args[1])!;
+        _timeoutMap[id] = Future.delayed(Duration(milliseconds: ms), () {
+          // cancelled
+          if(_timeoutMap.containsKey(id)) {
+            _timeoutMap.remove(id);
+            JS_CallVoid(ctx, fn, $undefined.value, 0, nullptr);
+          }
+          JS_FreeValuePointer(ctx, fn);
+        });
+        return newNumber(id);
+      };
+      scope.manage(newFunction(null, setTimeout)).consume((lifetime) => setProperty(global.value, 'setTimeout', lifetime.value));
+      VmFunctionImplementation clearTimeout = (List<JSValuePointer> args, {JSValuePointer? thisObj}) {
+        int id = getInt(args[0])!;
+        _timeoutMap.remove(id);
+      };
+      scope.manage(newFunction(null, clearTimeout)).consume((lifetime) => setProperty(global.value, 'clearTimeout', lifetime.value));
     });
   }
 
@@ -681,11 +709,25 @@ class QuickJSVm implements Disposable {
   /// @returns A result of JSValuePointer|JSValueConstPointer|void. If the function threw, result `error` be a handle to the exception.
   VmCallResult<QuickJSHandle> callFunction(
     JSValuePointer func,
-    JSValuePointer? thisVal,
-    List<JSValuePointer> args,
+    [JSValuePointer? thisVal,
+      List<JSValuePointer>? args,]
   ) {
-    final resultPtr = _toPointerArray(args).consume((argsPtr) => JS_Call(
-        ctx, func, thisVal?.cast<JSValueOpaque>()??nullptr, args.length, argsPtr.value));
+    Lifetime<JSValueConstPointerPointer>? argv;
+    int argc;
+    if(args?.isNotEmpty != true) {
+      argc = 0;
+    } else {
+      argc = args!.length;
+      argv = _toPointerArray(args);
+    }
+    final resultPtr;
+    try {
+      resultPtr = JS_Call(ctx, func, thisVal??$undefined.value, argc, argv?.value??nullptr);
+    } finally {
+      argv?.dispose();
+    }
+    // final resultPtr = _toPointerArray(args??[]).consume((argsPtr) => JS_Call(
+    //     ctx, func, thisVal??$undefined.value, args?.length??0, argsPtr.value));
     final errorPtr = JS_ResolveException(ctx, resultPtr);
     if (errorPtr != nullptr) {
       JS_FreeValuePointer(ctx, resultPtr);
@@ -714,7 +756,7 @@ class QuickJSVm implements Disposable {
    */
   VmCallResult<QuickJSHandle> evalCode(String code, {String? filename}) {
     Lifetime<HeapCharPointer> codeHandle = _newHeapCharPointer(code);
-    Lifetime<HeapCharPointer>? filenameHandle = _newHeapCharPointer(filename??'<eval.js>');
+    Lifetime<HeapCharPointer> filenameHandle = _newHeapCharPointer(filename??'<eval.js>');
     late final resultPtr;
     try {
       resultPtr = JS_Eval(_ctx.value, codeHandle.value, codeHandle.value.length, filenameHandle.value, JSEvalFlag.GLOBAL);

@@ -23,7 +23,7 @@
 #include "quickjs.h"
 // #include "quickjs-libc.h"
 
-#define PKG "quickjs-emscripten: "
+#define PKG "flutter_js: "
 
 #ifdef QJS_DEBUG_MODE
 #define QJS_DEBUG(msg) qts_log(msg);
@@ -401,6 +401,17 @@ JSValue *QJS_Call(JSContext *ctx, JSValueConst *func_obj, JSValueConst *this_obj
   return jsvalue_to_heap(JS_Call(ctx, *func_obj, *this_obj, argc, argv));
 }
 
+void QJS_CallVoid(JSContext *ctx, JSValueConst *func_obj, JSValueConst *this_obj, int argc, JSValueConst **argv_ptrs) {
+  // convert array of pointers to array of values
+  JSValueConst *argv = new JSValueConst[argc];
+  int i;
+  for (i=0; i<argc; i++) {
+    argv[i] = *(argv_ptrs[i]);
+  }
+
+  JS_Call(ctx, *func_obj, *this_obj, argc, argv);
+}
+
 /**
  * If maybe_exception is an exception, get the error.
  * Otherwise, return NULL.
@@ -469,7 +480,7 @@ char* QJS_Typeof(JSContext *ctx, JSValueConst *value) {
   else if (JS_IsSymbol(*value)) { result = "symbol"; }
   else if (JS_IsObject(*value)) { result = "object"; }
 
-  char* out = strdup(result);
+  char* out = _strdup(result);
   return out;
 }
 
@@ -727,9 +738,12 @@ void QJS_TestStringArg(const char *string) {
       return jsvalue_to_heap(result);
   }
 
+  JSValue* QJS_GetException(JSContext *ctx) {
+    return jsvalue_to_heap(JS_GetException(ctx));
+  }
 
-
-  void hello_world() {
-      printf("Hello World\n");
+  const char* hello_world() {
+      printf("C: Hello World\n");
+	  return "Hello World!";
   }
 }

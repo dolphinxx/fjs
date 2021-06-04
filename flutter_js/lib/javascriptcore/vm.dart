@@ -184,6 +184,7 @@ class JavaScriptCoreVm extends Disposable {
     _vmMap[ctx] = this;
     _init();
     _setupConsole();
+    _setupSetTimeout();
   }
 
   void _init() {
@@ -264,6 +265,34 @@ return 0
     };
     final JSValueRef log = newFunction(null, logFn);
     setProperty(console, 'log', log);
+  }
+
+  int _timeoutNextId = 1;
+  Map<int, Future> _timeoutMap = {};
+  void _setupSetTimeout() {
+    JSToDartFunction setTimeout = (List<JSValueRef> args, {JSValueRef? thisObj}) {
+      int id = _timeoutNextId++;
+      JSValueRef fn = args[0];
+      // prevent GC
+      jSValueProtect(ctx, fn);
+      int ms = getInt(args[1])!;
+      _timeoutMap[id] = Future.delayed(Duration(milliseconds: ms), () {
+        if(_timeoutMap.containsKey(id)) {
+          _timeoutMap.remove(id);
+          // TODO: error handle
+          jSObjectCallAsFunction(ctx, fn, nullptr, 0, nullptr, nullptr);
+        }
+        jSValueUnprotect(ctx, fn);
+      });
+      return newNumber(id);
+    };
+    JSValuePointer setTimeoutRef = newFunction(null, setTimeout);
+    setProperty(global, 'setTimeout', setTimeoutRef);
+    JSToDartFunction clearTimeout = (List<JSValuePointer> args, {JSValuePointer? thisObj}) {
+      int id = getInt(args[0])!;
+      _timeoutMap.remove(id);
+    };
+    setProperty(global, 'clearTimeout', newFunction(null, clearTimeout));
   }
 
   /**
