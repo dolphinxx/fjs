@@ -93,10 +93,15 @@ class QuickJSDeferredPromise implements Disposable {
   Lifetime<JSValuePointer> get promise => _promise;
 
   QuickJSDeferredPromise(
-      this.owner, this._promise, this._resolve, this._reject) {
-    Completer completer = Completer();
-    this.settled = completer.future;
-    this.onSettled = () => completer.complete();
+      this.owner, this._promise, this._resolve, this._reject, [Future? future]) {
+    if(future != null) {
+      this.settled = future;
+      this.onSettled = () {};
+    } else {
+      Completer completer = Completer();
+      this.settled = completer.future;
+      this.onSettled = () => completer.complete();
+    }
   }
 
   /**
@@ -537,22 +542,29 @@ class QuickJSVm implements Disposable {
     return JSError(e.toString());
   }
 
-  QuickJSDeferredPromise newPromise() {
-    return Scope.withScope((scope) {
-      // Pointer for receiving resolve & reject
-      Lifetime<JSValuePointerPointer> resolves =
-          scope.manage(_newMutablePointerArray(2));
+  QuickJSDeferredPromise newPromise([Future? future]) {
+    // Pointer for receiving resolve & reject
+    Lifetime<JSValuePointerPointer> resolves = _newMutablePointerArray(2);
+    try {
       final JSValuePointer promise = JS_NewPromiseCapability(
         ctx,
         resolves.value,
       );
-      return QuickJSDeferredPromise(
+      final promiseWrapper = _scope.manage(QuickJSDeferredPromise(
         this,
         _heapValueHandle(promise),
         _heapValueHandle(resolves.value[0]),
         _heapValueHandle(resolves.value[1]),
-      );
-    });
+        future,
+      ));
+      if(future != null) {
+        future.then((_) => dartToJS(_).consume((lifetime) => promiseWrapper.resolve(lifetime.value)))
+            .catchError((_) => dartToJS(_).consume((lifetime) => promiseWrapper.reject(lifetime.value)));
+      }
+      return promiseWrapper;
+    } finally {
+      resolves.dispose();
+    }
   }
 
   /**
@@ -913,7 +925,6 @@ class QuickJSVm implements Disposable {
       });
       try {
         callFunction(thenPtr.value, value, [onFulfilled.value, onError.value]);
-        executePendingJobs();
         // complete when the promise is resolved/rejected.
         return completer.future;
       } finally {
@@ -1041,11 +1052,7 @@ class QuickJSVm implements Disposable {
       });
     }
     if(value is Future) {
-      final promise = newPromise();
-      QuickJSHandle result = promise.promise;
-      value.then((_) => dartToJS(_).consume((lifetime) => promise.resolve(lifetime.value)))
-      .catchError((_) => dartToJS(_).consume((lifetime) => promise.reject(lifetime.value)));
-      return result;
+      return newPromise(value).promise;
     }
     if(value is Map) {
       final result = newObject();

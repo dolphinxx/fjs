@@ -39,10 +39,15 @@ class JavaScriptCoreDeferredPromise implements Disposable {
   Lifetime<JSValuePointer> get promise => _promise;
 
   JavaScriptCoreDeferredPromise(
-      this.owner, this._promise, this._resolve, this._reject) {
-    Completer completer = Completer();
-    this.settled = completer.future;
-    this.onSettled = () => completer.complete();
+      this.owner, this._promise, this._resolve, this._reject, [Future? future]) {
+    if(future != null) {
+      this.settled = future;
+      this.onSettled = () {};
+    } else {
+      Completer completer = Completer();
+      this.settled = completer.future;
+      this.onSettled = () => completer.complete();
+    }
   }
 
   /**
@@ -58,7 +63,7 @@ class JavaScriptCoreDeferredPromise implements Disposable {
       return;
     }
     final JSValueRefArray args = owner.createValueRefArray([value??owner.$undefined]);
-    owner.runWithExceptionHandle((exception) => jSObjectCallAsFunction(owner.ctx, _resolve.value, owner.$undefined, 1,
+    owner.runWithExceptionHandle((exception) => jSObjectCallAsFunction(owner.ctx, _resolve.value, nullptr, 1,
         args, exception), () => calloc.free(args));
     this._disposeResolvers();
     this.onSettled();
@@ -77,7 +82,7 @@ class JavaScriptCoreDeferredPromise implements Disposable {
       return;
     }
     final JSValueRefArray args = owner.createValueRefArray([value??owner.$undefined]);
-    owner.runWithExceptionHandle((exception) => jSObjectCallAsFunction(owner.ctx, _reject.value, owner.$undefined, 1,
+    owner.runWithExceptionHandle((exception) => jSObjectCallAsFunction(owner.ctx, _reject.value, nullptr, 1,
         args, exception), () => calloc.free(args));
     this._disposeResolvers();
     this.onSettled();
@@ -475,7 +480,7 @@ return 0
     return ptr;
   }
 
-  JavaScriptCoreDeferredPromise newPromise() {
+  JavaScriptCoreDeferredPromise newPromise([Future? future]) {
     final resolve = calloc<JSValueRef>();
     final reject = calloc<JSValueRef>();
     final exception = calloc<JSValueRef>();
@@ -492,12 +497,18 @@ return 0
       throw error;
     }
     // in case promise is not resolved/rejected, and not disposed.
-    return _scope.manage(JavaScriptCoreDeferredPromise(
+    final promiseWrapper = _scope.manage(JavaScriptCoreDeferredPromise(
       this,
       Lifetime(promise),
       Lifetime(resolve[0], (_) =>calloc.free(resolve)),
       Lifetime(reject[0], (_) => calloc.free(reject)),
+      future,
     ));
+    if(future != null) {
+      future.then((_) => promiseWrapper.resolve(dartToJS(_)))
+          .catchError((_) => promiseWrapper.reject(dartToJS(_)));
+    }
+    return promiseWrapper;
   }
 
   JSObjectRef newFunction(String? name, JSToDartFunction fn) {
@@ -816,10 +827,7 @@ return 0
       return newArray(value.map((e) => dartToJS(e)).toList());
     }
     if(value is Future) {
-      final promise = newPromise();
-      value.then((_) => promise.resolve(dartToJS(_)))
-          .catchError((_) => promise.reject(dartToJS(_)));
-      return promise.promise.value;
+      return newPromise(value).promise.value;
     }
     if(value is Map) {
         final result = newObject();

@@ -67,13 +67,35 @@ void main() {
       expect(vm.evalUnsafe('new Date(1622470242901)').consume((lifetime) => vm.jsToDart(lifetime.value)), DateTime.fromMillisecondsSinceEpoch(1622470242901));
     });
     test('promise values', () async {
-      expect(await (vm.evalUnsafe('new Promise((resolve, reject) => resolve("Hello World!"))').consume((lifetime) => vm.jsToDart(lifetime.value)) as Future), "Hello World!");
+      var f = vm.evalUnsafe('new Promise((resolve, reject) => resolve("Hello World!")).then(_ => _ + "!")').consume((lifetime) => vm.jsToDart(lifetime.value)) as Future;
+      vm.executePendingJobs();
+      expect(await f, "Hello World!!");
       try {
-        await (vm.evalUnsafe('new Promise((resolve, reject) => reject("Expected error."))').consume((lifetime) => vm.jsToDart(lifetime.value)) as Future);
+        f = (vm.evalUnsafe('new Promise((resolve, reject) => reject("Expected error."))').consume((lifetime) => vm.jsToDart(lifetime.value)) as Future);
+        vm.executePendingJobs();
+        await f;
       } catch(e) {
         expect(e, isA<JSError>());
         expect((e as JSError).message, 'Expected error.');
       }
+    });
+    test('promise with timeout values', () async {
+      final evalResult = vm.evalUnsafe('''
+      new Promise((resolve, reject) => 
+        setTimeout(function() {
+          console.log(1);
+          resolve("Hello World!");
+          console.log(2);
+        }, 1000)
+      ).then(function(_) {
+        console.log(3);
+        return _ + "!";
+      })''');
+      Future f = (evalResult.consume((lifetime) => vm.jsToDart(lifetime.value)) as Future);
+      // Use a delay or event loop
+      Future.delayed(Duration(seconds: 3), () => vm.executePendingJobs());
+      final actual = await f;
+      expect(actual, "Hello World!!");
     });
     test('object values', () {
       var expected = {'a':1,'b':'2', 'c': [1, 2, {'regex': {}, '2': 'number prop name'}, ]};

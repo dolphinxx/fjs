@@ -75,6 +75,10 @@ void main() {
         expect((e as JSError).message, 'Expected error.');
       }
     });
+    test('promise with timeout values', () async {
+      final actual = await (vm.jsToDart(vm.evalCode('new Promise((resolve, reject) => setTimeout(function() {console.log(123);resolve("Hello World!")}, 1000)).then(_ => _ + "!")')) as Future);
+      expect(actual, "Hello World!!");
+    });
     test('object values', () {
       var expected = {'a':1,'b':'2', 'c': [1, 2, {'regex': {}, '2': 'number prop name'}, ]};
       vm.jsonSerializeObject = true;

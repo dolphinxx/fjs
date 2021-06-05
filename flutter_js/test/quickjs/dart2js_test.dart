@@ -110,7 +110,9 @@ void main() {
         test.then(_ => {if(_ !== "Hello World!") throw "error"})
         ''');
         await f;
-        await vm.jsToDart(result.value);
+        final promise = vm.jsToDart(result.value);
+        vm.executePendingJobs();
+        await promise;
         result.dispose();
       } finally {
         _.dispose();
