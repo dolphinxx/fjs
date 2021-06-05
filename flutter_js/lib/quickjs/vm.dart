@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_js/vm.dart';
 
 import '../error.dart';
 import 'qjs_ffi.dart';
@@ -192,7 +193,7 @@ typedef VmFunctionImplementation
 typedef ExecutePendingJobsResult = SuccessOrFail<int, QuickJSHandle>;
 
 /// TODO: module
-class QuickJSVm implements Disposable {
+class QuickJSVm extends Vm implements Disposable {
   static final _vmMap = Map<JSContextPointer, QuickJSVm>();
   static final _rtMap = Map<JSRuntimePointer, QuickJSVm>();
   static bool _initialized = false;
@@ -256,6 +257,7 @@ class QuickJSVm implements Disposable {
     _vmMap[_ctx.value] = this;
     _rtMap[_rt.value] = this;
 
+    _setupModuleResolver();
     _setupConsole();
     _setupSetTimeout();
   }
@@ -307,6 +309,21 @@ class QuickJSVm implements Disposable {
       };
       scope.manage(newFunction(null, clearTimeout)).consume((lifetime) => setProperty(global.value, 'clearTimeout', lifetime.value));
     });
+  }
+
+  Map<String, ModuleResolver> _moduleMap = {};
+  void _setupModuleResolver() {
+    newFunction('require', (args, {thisObj}) {
+      String moduleName = jsToDart(args[0]);
+      if(!_moduleMap.containsKey(moduleName)) {
+        return $undefined;
+      }
+      return _moduleMap[moduleName]!(this);
+    }).consume((lifetime) => setProperty(global.value, 'require', lifetime.value));
+  }
+
+  void registerModule(String moduleName, ModuleResolver resolver) {
+    _moduleMap[moduleName] = resolver;
   }
 
   /**
@@ -785,6 +802,8 @@ class QuickJSVm implements Disposable {
   }
 
   /// Auto unwrap `VmCallResult`
+  ///
+  /// *Unsafe* means an exception may throw.
   QuickJSHandle evalUnsafe(String code, {String? filename}) {
     return unwrapResult(evalCode(code, filename: filename));
   }
@@ -1162,6 +1181,9 @@ class QuickJSVm implements Disposable {
    */
   dispose() {
     this._scope.dispose();
+    this._moduleMap.clear();
+    this._timeoutMap.clear();
+    this._fnMap.clear();
   }
 
   var _fnNextId = 0;

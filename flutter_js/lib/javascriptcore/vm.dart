@@ -7,6 +7,7 @@ import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 import '../error.dart';
 import '../lifetime.dart';
+import '../vm.dart';
 import './binding/js_base.dart';
 import './binding/js_context_ref.dart';
 import './binding/js_object_ref.dart';
@@ -155,7 +156,7 @@ abstract class JSHandyType {
   }
 }
 
-class JavaScriptCoreVm extends Disposable {
+class JavaScriptCoreVm extends Vm implements Disposable {
   static final _vmMap = Map<JSContextPointer, JavaScriptCoreVm>();
 
   // late final JSContextGroupRef contextGroup;
@@ -188,6 +189,7 @@ class JavaScriptCoreVm extends Disposable {
     }));
     _vmMap[ctx] = this;
     _init();
+    _setupModuleResolver();
     _setupConsole();
     _setupSetTimeout();
   }
@@ -299,6 +301,22 @@ return 0
       _timeoutMap.remove(id);
     };
     setProperty(global, 'clearTimeout', newFunction(null, clearTimeout));
+  }
+
+  Map<String, ModuleResolver> _moduleMap = {};
+  void _setupModuleResolver() {
+    JSValueRef fn = newFunction('require', (args, {thisObj}) {
+      String moduleName = jsToDart(args[0]);
+      if(!_moduleMap.containsKey(moduleName)) {
+        return $undefined;
+      }
+      return _moduleMap[moduleName]!(this).value;
+    });
+    setProperty(global, 'require', fn);
+  }
+
+  void registerModule(String moduleName, ModuleResolver resolver) {
+    _moduleMap[moduleName] = resolver;
   }
 
   /**
@@ -580,6 +598,9 @@ return 0
   /// Dispose of this VM's underlying resources.
   dispose() {
     this._scope.dispose();
+    this._moduleMap.clear();
+    this._timeoutMap.clear();
+    this._fnMap.clear();
   }
 
   dynamic jsToDart(JSValueRef jsValueRef) {
@@ -694,96 +715,6 @@ return 0
     } catch (err) {
       return str;
     }
-
-    // int type = jSValueGetType(ctx, jsValueRef);
-    // if (type == JSType.kJSTypeUndefined || type == JSType.kJSTypeNull) {
-    //   return null;
-    // }
-    // if (type == JSType.kJSTypeBoolean) {
-    //   return jSValueToBoolean(ctx, jsValueRef) == 1;
-    // }
-    // if (type == JSType.kJSTypeNumber) {
-    //   return jSValueToNumber(ctx, jsValueRef, nullptr);
-    // }
-    // if (type == JSType.kJSTypeString ||
-    //     type == JSType.kJSTypeSymbol /*TODO:*/) {
-    //   // final cp = jSValueToStringCopy(context, jsValueRef, nullptr);
-    //   // Pointer<Utf16> cString = jSStringGetCharactersPtr(cp);
-    //   // if(cString == nullptr) {
-    //   //   return null;
-    //   // }
-    //   // int length = jSStringGetLength(cp);
-    //   // final result = String.fromCharCodes(Uint16List.view(cString.cast<Uint16>().asTypedList(length).buffer, 0, length));
-    //   // jSStringRelease(cp);
-    //   return getString(jsValueRef);
-    // }
-    // if (type == JSType.kJSTypeObject) {
-    //   if (jSValueIsArray(ctx, jsValueRef) == 1) {
-    //     final lengthPtr = jsGetProperty(ctx, jsValueRef, 'length');
-    //     int length = jSValueToNumber(ctx, lengthPtr, nullptr).toInt();
-    //     List result = [];
-    //     for (int i = 0; i < length; i++) {
-    //       result.add(jsToDart(
-    //           jSObjectGetPropertyAtIndex(ctx, jsValueRef, i, nullptr)));
-    //     }
-    //     return result;
-    //   }
-    //   final _typeOf = eval('FlutterJS.typeOf').value;
-    //   var exception = calloc<JSValueRef>();
-    //   final typeOfPtr = jSObjectCallAsFunction(ctx, _typeOf, nullptr, 1,
-    //       jsCreateArgumentArray([jsValueRef]), exception);
-    //   jsThrowOnError(ctx, exception);
-    //   String strType = jsValueToString(ctx, typeOfPtr)!;
-    //   // Limitation: The returned Function only accept a single parameter of List type.
-    //   if (strType == 'function') {
-    //     return (List? args) {
-    //       final result = callFunction(jsValueRef, args: args).value;
-    //       return jsToDart(result);
-    //     };
-    //   }
-    //   JSValueRef thenPtr = jsGetProperty(ctx, jsValueRef, 'then');
-    //   if (jSValueIsObject(ctx, thenPtr) == 1 &&
-    //       jSValueIsObject(
-    //           ctx, jsGetProperty(ctx, jsValueRef, 'catch')) ==
-    //           1) {
-    //     // Treat as a Promise instance
-    //     Completer completer = Completer();
-    //     int callbackId = addNativeCallback((success, value) {
-    //       if (success) {
-    //         completer.complete(value);
-    //       } else {
-    //         completer.completeError(value);
-    //       }
-    //     });
-    //     final onFulFilled = eval(
-    //         '(value)=>FlutterJS.sendMessage("internal::native_callback",{id:$callbackId,instanceId:"$instanceId",args:[true,value]})',
-    //         name: 'promise onFulFilled setup').value;
-    //     final onError = eval(
-    //         '(error)=>FlutterJS.sendMessage("internal::native_callback",{id:$callbackId,instanceId:"$instanceId",args:[false,error]})',
-    //         name: 'promise onError setup').value;
-    //     exception = calloc<JSValueRef>();
-    //     jSObjectCallAsFunction(ctx, thenPtr, jsValueRef, 1,
-    //         jsCreateArgumentArray([onFulFilled, onError]), exception);
-    //     jsThrowOnError(ctx, exception);
-    //     return completer.future;
-    //   }
-    //   final propNamesPtr = jSObjectCopyPropertyNames(ctx, jsValueRef);
-    //   int propNameLength = jSPropertyNameArrayGetCount(propNamesPtr);
-    //   final result = {};
-    //   for (int i = 0; i < propNameLength; i++) {
-    //     final propNamePtr = jSPropertyNameArrayGetNameAtIndex(propNamesPtr, i);
-    //     String propName = jsGetString(propNamePtr)!;
-    //     result[propName] = jsToDart(
-    //         jSObjectGetProperty(ctx, jsValueRef, propNamePtr, nullptr));
-    //   }
-    //   jSPropertyNameArrayRelease(propNamesPtr);
-    //   return result;
-    // }
-    // final exception = calloc<JSValueRef>();
-    // String? jsonStr =
-    // jsGetString(jSValueCreateJSONString(ctx, jsValueRef, 0, exception));
-    // jsThrowOnError(ctx, exception);
-    // return jsonStr == null ? null : jsonDecode(jsonStr);
   }
 
   JSValueRef dartToJS(dynamic value) {
@@ -840,115 +771,6 @@ return 0
     JSValueRef result = jSValueMakeFromJSONString(ctx, jsonRef);
     jSStringRelease(jsonRef);
     return result;
-    // if (val == null) {
-    //   return jSValueMakeUndefined(ctx);
-    // }
-    // if (val is Error || val is Exception) {
-    //   return newError(val);
-    // }
-    // if (val is Exception) {
-    //   return jSObjectMakeError(
-    //       ctx, 1, dartArrayToJs(context, [val.toString()]), nullptr);
-    // }
-    // if (val is Future) {
-    //   final promise = newPromise();
-    //   val.then((value) => promise.resolve(dartToJS(value)))
-    //       .catchError((error) => promise.reject(dartToJS(error)));
-    //   return promise.promise.value;
-    //   // final resolve = calloc<JSValueRef>();
-    //   // final reject = calloc<JSValueRef>();
-    //   // val.then((value) {
-    //   //   final exception = calloc<JSValueRef>();
-    //   //   jSObjectCallAsFunction(ctx, resolve[0], nullptr, 1,
-    //   //       jsCreateArgumentArray([_dartToJS(value)]), exception);
-    //   //   String? error = _jsErrorToString(ctx, exception);
-    //   //   calloc.free(exception);
-    //   //   if (error != null) {
-    //   //     throw error;
-    //   //   }
-    //   // }).catchError((err) {
-    //   //   final exception = calloc<JSValueRef>();
-    //   //   jSObjectCallAsFunction(ctx, reject[0], nullptr, 1,
-    //   //       jsCreateArgumentArray([_dartToJS(err)]), exception);
-    //   //   String? error = _jsErrorToString(ctx, exception);
-    //   //   calloc.free(exception);
-    //   //   if (error != null) {
-    //   //     throw error;
-    //   //   }
-    //   // }).whenComplete(() {
-    //   //   calloc.free(resolve);
-    //   //   calloc.free(reject);
-    //   // });
-    //   // final exception = calloc<JSValueRef>();
-    //   // final result =
-    //   // jSObjectMakeDeferredPromise(ctx, resolve, reject, exception);
-    //   // jsThrowOnError(ctx, exception);
-    //   // return result;
-    // }
-    // if (val is bool) {
-    //   return jSValueMakeBoolean(ctx, val ? 1 : 0);
-    // }
-    // if (val is int || val is double) {
-    //   return jSValueMakeNumber(ctx, val is int ? val.toDouble() : val);
-    // }
-    // if (val is String) {
-    //   Pointer<Utf8> ptr = val.toNativeUtf8();
-    //   final strVal = jSStringCreateWithUTF8CString(ptr);
-    //   final result = jSValueMakeString(ctx, strVal);
-    //   calloc.free(ptr);
-    //   return result;
-    // }
-    // if (val is Uint8List) {
-    //   final ptr = calloc<Uint8>(val.length);
-    //   final byteList = ptr.asTypedList(val.length);
-    //   byteList.setAll(0, val);
-    //   final Pointer<NativeFunction<bytes_deallocator>> deallocator =
-    //   Pointer.fromFunction(_bytesDeallocator);
-    //   final exception = calloc<JSValueRef>();
-    //   final result = jSObjectMakeArrayBufferWithBytesNoCopy(
-    //       ctx, ptr, val.length, deallocator, nullptr, exception);
-    //   String? error = _jsErrorToString(ctx, exception);
-    //   calloc.free(exception);
-    //   if (error != null) {
-    //     throw error;
-    //   }
-    //   return result;
-    // }
-    // if (val is List) {
-    //   final result = newArray();
-    //   for (int i = 0; i < val.length; i++) {
-    //     final exception = calloc<JSValueRef>();
-    //     jSObjectSetPropertyAtIndex(
-    //         ctx, result, i, _dartToJS(val[i]), nullptr);
-    //     String? error = _jsErrorToString(ctx, exception);
-    //     calloc.free(exception);
-    //     if (error != null) {
-    //       throw error;
-    //     }
-    //   }
-    //   return result;
-    // }
-    // if (val is Map) {
-    //   final result = newObject();
-    //   val.forEach((key, value) {
-    //     final exception = calloc<JSValueRef>();
-    //     jSObjectSetPropertyForKey(
-    //         ctx, result, _dartToJS(key), _dartToJS(value), 0, nullptr);
-    //     String? error = _jsErrorToString(ctx, exception);
-    //     calloc.free(exception);
-    //     if (error != null) {
-    //       throw error;
-    //     }
-    //   });
-    //   return result;
-    // }
-    // if (val is Function) {
-    //   final callbackId = addNativeCallback(val);
-    //   return eval(
-    //       '(function() {return FlutterJS.sendMessage("internal::native_callback",{id:$callbackId, args:[...arguments]})})').value;
-    // }
-    // throw UnsupportedError(
-    //     'Convert dart type[${val.runtimeType}] to JS type is not yet supported!');
   }
 
   JSError? resolveException(JSValueRefRef exception) {
