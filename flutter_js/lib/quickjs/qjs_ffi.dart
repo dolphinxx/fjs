@@ -186,6 +186,7 @@ final JS_FreeValuePointer = dylib.lookupFunction<
     void Function(
         JSContextPointer ctx, JSValuePointer value)>("QJS_FreeValuePointer");
 
+/// This operation just increase the `ref_count` to the [val], thus feel free to call it anytime.
 final JS_DupValuePointer = dylib.lookupFunction<
     JSValuePointer Function(JSContextPointer, Pointer),
     JSValuePointer Function(JSContextPointer ctx,
