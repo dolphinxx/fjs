@@ -194,6 +194,8 @@ class QuickJSVm extends Vm implements Disposable {
 
   /// Disable Console.log when `kRelease == true`
   bool disableConsoleInRelease = true;
+  /// Set to true to use JS_ArrayBufferCopy to construct an ArrayBuffer.
+  bool arrayBufferCopy = false;
 
   QuickJSVm() {
     if (!_initialized) {
@@ -474,19 +476,13 @@ class QuickJSVm extends Vm implements Disposable {
     }
   }
 
-  Lifetime<JSValuePointer> newArrayBuffer(Uint8List value,
-      [Pointer<NativeFunction<JSFreeArrayBufferDataFunc>>? freeFunc]) {
+  JSValuePointer newArrayBuffer(Uint8List value) {
     final ptr = calloc<Uint8>(value.length);
     final byteList = ptr.asTypedList(value.length);
     byteList.setAll(0, value);
-    // FIXME: use freeFunc to free resource and return JSValuePointer instead of Lifetime
     final ret = JS_NewArrayBuffer(
-        ctx, ptr, value.length, freeFunc ?? nullptr, nullptr, 0);
-    return Lifetime(ret, (_) {
-      // ptr should not be freed until ret disposed since JS_NewArrayBufferNoCopy share the same data.
-      calloc.free(ptr);
-      JS_FreeValuePointer(ctx, _);
-    });
+        ctx, ptr, value.length, Pointer.fromFunction(_cToHostArrayBufferFreeCallback), nullptr, 0);
+    return _heapValueHandle(ret);
   }
 
   JSValuePointer newError(dynamic error) {
@@ -1029,7 +1025,8 @@ class QuickJSVm extends Vm implements Disposable {
       return newNumber(value.millisecondsSinceEpoch);
     }
     if(value is TypedData && value is List<int>) {
-      return newArrayBufferCopy(value is Uint8List ? value : value.buffer.asUint8List());
+      Uint8List list = value is Uint8List ? value : value.buffer.asUint8List();
+      return arrayBufferCopy ? newArrayBufferCopy(list) : newArrayBuffer(list);
     }
     if(value is List) {
       List<JSValuePointer> elements = value.map((e) => dartToJS(e)).toList();
@@ -1297,5 +1294,10 @@ class QuickJSVm extends Vm implements Disposable {
    */
   static InterruptHandler shouldInterruptAfterDeadline(int deadline) {
     return (vm) => DateTime.now().millisecondsSinceEpoch > deadline;
+  }
+
+  /// JSFreeArrayBufferDataFunc
+  static void _cToHostArrayBufferFreeCallback(JSRuntimePointer rt, Pointer opaque, Pointer<Uint8> ptr) {
+    malloc.free(ptr);
   }
 }

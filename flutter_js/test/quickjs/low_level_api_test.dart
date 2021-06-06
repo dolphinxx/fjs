@@ -66,21 +66,17 @@ void main() {
       final utf8str = 'byteLength'.toNativeUtf8();
       final lengthStr = JS_NewString(vm.ctx, utf8str);
       malloc.free(utf8str);
-      final lengthPtr = JS_GetProp(vm.ctx, handle.value, lengthStr.cast<JSValueConstOpaque>());
+      final lengthPtr = JS_GetProp(vm.ctx, handle, lengthStr.cast<JSValueConstOpaque>());
       JS_FreeValuePointer(vm.ctx, lengthStr);
       int length = JS_GetFloat64(vm.ctx, lengthPtr).toInt();
       expect(length, data.length);
       final psize = malloc<IntPtr>();
-      final buff = JS_GetArrayBuffer(vm.ctx, psize, handle.value);
+      final buff = JS_GetArrayBuffer(vm.ctx, psize, handle);
       Uint8List actual = buff.asTypedList(psize.value);
       malloc.free(psize);
       print(expected);
       print(actual);
-      try {
-        expect(actual, data);
-      }finally {
-        handle.dispose();
-      }
+      expect(actual, data);
     });
     test('get function from eval and invoke', () {
       final codePtr = '(function(){return 1024;})'.toNativeUtf8();
