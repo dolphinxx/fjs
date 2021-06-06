@@ -409,7 +409,8 @@ void QJS_CallVoid(JSContext *ctx, JSValueConst *func_obj, JSValueConst *this_obj
     argv[i] = *(argv_ptrs[i]);
   }
 
-  JS_Call(ctx, *func_obj, *this_obj, argc, argv);
+  JSValue res = JS_Call(ctx, *func_obj, *this_obj, argc, argv);
+  JS_FreeValue(ctx, res);
 }
 
 /**
