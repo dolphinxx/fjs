@@ -582,7 +582,6 @@ class QuickJSVm extends Vm implements Disposable {
    * return deferred.handle
    * ```
    *
-   * TODO: remove fn from map which is called only once. ie: onFulfill/onError functions for a JS promise.
    */
   JSValuePointer newFunction(String? name, VmFunctionImplementation fn) {
     final fnId = ++_fnNextId;
