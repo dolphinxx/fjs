@@ -1,9 +1,52 @@
 import 'dart:async';
 
 import 'package:flutter_js/javascriptcore/vm.dart';
+import 'package:flutter_js/module.dart';
 import 'package:flutter_js/quickjs/vm.dart';
 import 'package:flutter_js/quickjs/qjs_ffi.dart';
+import 'package:flutter_js/vm.dart';
 import 'package:test/test.dart';
+
+class GreetingModule extends FlutterJSModule {
+  final String name = 'greeting';
+  JSValuePointer? cache;
+  JSValuePointer resolve(Vm vm) {
+    if(vm is QuickJSVm) {
+      if(cache == null) {
+        cache = vm.newFunction(null, (args, {thisObj}) {
+          return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
+        });
+      }
+      return vm.copyJSValue(cache!);
+    }
+    if(vm is JavaScriptCoreVm) {
+      return cache = cache ?? vm.newFunction(null, (args, {thisObj}) {
+        return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
+      });
+    }
+    throw 'unsupported!';
+  }
+}
+
+class AsyncGreetingModule extends FlutterJSModule {
+  final String name = 'async_greeting';
+
+  @override
+  JSValuePointer resolve(Vm vm) {
+    if(vm is QuickJSVm) {
+      return vm.newPromise(Future.delayed(Duration(seconds: 2), () => vm.newFunction(null, (args, {thisObj}) {
+        print('async greeting called.');
+        return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
+      }))).promise.value;
+    }
+    if(vm is JavaScriptCoreVm) {
+      return vm.newPromise(Future.delayed(Duration(seconds: 2), () => vm.newFunction(null, (args, {thisObj}) {
+        return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
+      }))).promise.value;
+    }
+    throw 'unsupported!';
+  }
+}
 
 void main() {
   group('QuickJS', () {
@@ -15,16 +58,7 @@ void main() {
       vm.dispose();
     });
     test('QuickJS module_loader simple', () async {
-      JSValuePointer? cache;
-      vm.registerModule('greeting', (_vm) {
-        QuickJSVm vm = _vm as QuickJSVm;
-        if(cache == null) {
-          cache = vm.newFunction(null, (args, {thisObj}) {
-            return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
-          });
-        }
-        return vm.copyJSValue(cache!);
-      });
+      vm.registerModule(GreetingModule());
       var actual = vm.evalAndConsume('''
       var greeting = require("greeting");
       var greeting = require("greeting");
@@ -35,13 +69,7 @@ void main() {
       print(actual);
     });
     test('QuickJS module_loader async', () async {
-      vm.registerModule('async_greeting', (_vm) {
-        QuickJSVm vm = _vm as QuickJSVm;
-        return vm.newPromise(Future.delayed(Duration(seconds: 2), () => vm.newFunction(null, (args, {thisObj}) {
-          print('async greeting called.');
-          return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
-        }))).promise.value;
-      });
+      vm.registerModule(AsyncGreetingModule());
       final result = vm.evalCode('''
       require("async_greeting").then(greeting => greeting("Flutter"));
       ''');
@@ -61,13 +89,7 @@ void main() {
       vm.dispose();
     });
     test('JavaScriptCore module_loader simple', () async {
-      JSValuePointer? cache;
-      vm.registerModule('greeting', (_vm) {
-        JavaScriptCoreVm vm = _vm as JavaScriptCoreVm;
-        return cache = cache ?? vm.newFunction(null, (args, {thisObj}) {
-          return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
-        });
-      });
+      vm.registerModule(GreetingModule());
       final actual = vm.jsToDart(vm.evalCode('''
       var greeting = require("greeting");
       var greeting = require("greeting");
@@ -78,12 +100,7 @@ void main() {
       print(actual);
     });
     test('JavaScriptCore module_loader async', () async {
-      vm.registerModule('async_greeting', (_vm) {
-        JavaScriptCoreVm vm = _vm as JavaScriptCoreVm;
-        return vm.newPromise(Future.delayed(Duration(seconds: 2), () => vm.newFunction(null, (args, {thisObj}) {
-          return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
-        }))).promise.value;
-      });
+      vm.registerModule(AsyncGreetingModule());
       var actual = vm.jsToDart(vm.evalCode('''
       require("async_greeting").then(greeting => greeting("Flutter"));
       '''));

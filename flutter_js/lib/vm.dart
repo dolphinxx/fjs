@@ -1,27 +1,58 @@
-
 import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_js/module.dart';
 
 import 'promise.dart';
 export 'promise.dart';
 import 'types.dart';
+export 'types.dart';
 
 typedef ModuleResolver = JSValuePointer Function(Vm vm);
 
 abstract class Vm {
-  void dispose();
+  @protected
+  @mustCallSuper
+  void postConstruct() {
+    _setupModuleResolver();
+  }
 
-  /// Register a module with name [moduleName] to this vm, and can be `require`d later.
+  @mustCallSuper
+  void dispose() {
+    _moduleMap.values.forEach((element) => element.dispose());
+    _moduleMap.clear();
+  }
+
+  Map<String, FlutterJSModule> _moduleMap = {};
+  void _setupModuleResolver() {
+    final requireFn = newFunction('require', (args, {thisObj}) {
+      String moduleName = jsToDart(args[0]);
+      if(!_moduleMap.containsKey(moduleName)) {
+        return $undefined;
+      }
+      return _moduleMap[moduleName]!.resolve(this);
+    });
+    setProperty(global, 'require', requireFn);
+  }
+
+  /// Register a module to this vm, which can be `require`d later.
   ///
-  /// Since the Vm is rarely reused(prefer to create a new vm for each eval call), the result of ModuleResolver is not cached, which is different from NodeJS.
+  /// Since the Vm is rarely reused(prefer to create a new vm for each eval call), the result of [module].`resolve` is not cached, which is different from NodeJS.
   ///
   /// If you do need to cache the result of `require` call, have a look at `module_loader_test.dart`.
-  void registerModule(String moduleName, ModuleResolver resolver);
+  void registerModule(FlutterJSModule module) {
+    _moduleMap[module.name] = module;
+  }
+
   /// [`undefined`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined)
   JSValuePointer get $undefined;
+
   /// [`null`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null)
   JSValuePointer get $null;
+
   /// [`true`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/true)
   JSValuePointer get $true;
+
   /// [`false`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/false)
   JSValuePointer get $false;
 
@@ -82,7 +113,8 @@ abstract class Vm {
   JSValuePointer newFunction(String? name, JSToDartFunction function);
 
   /// Set a property on a JSValue.
-  void setProp(JSValuePointer obj, JSValueConstPointer key, JSValuePointer value);
+  void setProp(
+      JSValuePointer obj, JSValueConstPointer key, JSValuePointer value);
 
   /// A wrapper of [setProp], which automatically converts [key] to JS value.
   ///

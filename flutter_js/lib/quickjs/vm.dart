@@ -43,110 +43,6 @@ typedef CToHostInterruptImplementation = int Function(JSRuntimePointer rt);
  */
 typedef InterruptHandler = bool? Function(QuickJSVm vm);
 
-// /**
-//  * QuickJSDeferredPromise wraps a QuickJS promise and allows
-//  * [[resolve]]ing or [[reject]]ing that promise. Use it to bridge asynchronous
-//  * code on the host to APIs inside a QuickJSVm.
-//  *
-//  * Managing the lifetime of promises is tricky. There are three
-//  * [[QuickJSHandle]]s inside of each deferred promise object: (1) the promise
-//  * itself, (2) the `resolve` callback, and (3) the `reject` callback.
-//  *
-//  * - If the promise will be fufilled before the end of it's [[owner]]'s lifetime,
-//  *   the only cleanup necessary is `deferred.handle.dispose()`, because
-//  *   calling [[resolve]] or [[reject]] will dispose of both callbacks automatically.
-//  *
-//  * - As the return value of a [[VmFunctionImplementation]], return [[handle]],
-//  *   and ensure that either [[resolve]] or [[reject]] will be called. No other
-//  *   clean-up is necessary.
-//  *
-//  * - In other cases, call [[dispose]], which will dispose [[handle]] as well as the
-//  *   QuickJS handles that back [[resolve]] and [[reject]]. For this object,
-//  *   [[dispose]] is idempotent.
-//  */
-// class QuickJSDeferredPromise implements Disposable {
-//   final QuickJSVm owner;
-//   final Lifetime<JSValuePointer> _promise;
-//   final Lifetime<JSValuePointer> _resolve;
-//   final Lifetime<JSValuePointer> _reject;
-//
-//   /**
-//    * A native promise that will resolve once this deferred is settled.
-//    */
-//   late Future<void> settled;
-//   late void Function() onSettled;
-//
-//   Lifetime<JSValuePointer> get promise => _promise;
-//
-//   QuickJSDeferredPromise(
-//       this.owner, this._promise, this._resolve, this._reject, [Future? future]) {
-//     if(future != null) {
-//       this.settled = future;
-//       this.onSettled = () {};
-//     } else {
-//       Completer completer = Completer();
-//       this.settled = completer.future;
-//       this.onSettled = () => completer.complete();
-//     }
-//   }
-//
-//   /**
-//    * Resolve [[resolve]] with the given value, if any.
-//    * Calling this method after calling [[dispose]] is a no-op.
-//    *
-//    * Note that after resolving a promise, you may need to call
-//    * [[executePendingJobs]] to propagate the result to the promise's
-//    * callbacks.
-//    */
-//   void resolve(JSValuePointer? value) {
-//     if (!_resolve.alive) {
-//       return;
-//     }
-//     owner._freeJSValue(owner.callFunction(
-//         this._resolve.value, owner.nullThis, [value ?? owner.$undefined]));
-//     this._disposeResolvers();
-//     this.onSettled();
-//   }
-//
-//   /**
-//    * Reject [[reject]] with the given value, if any.
-//    * Calling this method after calling [[dispose]] is a no-op.
-//    *
-//    * Note that after rejecting a promise, you may need to call
-//    * [[executePendingJobs]] to propagate the result to the promise's
-//    * callbacks.
-//    */
-//   reject(JSValuePointer? value) {
-//     if (!_reject.alive) {
-//       return;
-//     }
-//     owner._freeJSValue(owner.callFunction(
-//         this._reject.value, owner.nullThis, [value ?? owner.$undefined]));
-//     this._disposeResolvers();
-//     this.onSettled();
-//   }
-//
-//   get alive {
-//     return _promise.alive || _resolve.alive || _reject.alive;
-//   }
-//
-//   dispose() {
-//     if (_promise.alive) {
-//       _promise.dispose();
-//     }
-//     this._disposeResolvers();
-//   }
-//
-//   _disposeResolvers() {
-//     if (_resolve.alive) {
-//       _resolve.dispose();
-//     }
-//     if (_reject.alive) {
-//       _reject.dispose();
-//     }
-//   }
-// }
-
 class QuickJSVm extends Vm implements Disposable {
   static final _vmMap = Map<JSContextPointer, QuickJSVm>();
   static final _rtMap = Map<JSRuntimePointer, QuickJSVm>();
@@ -204,10 +100,9 @@ class QuickJSVm extends Vm implements Disposable {
     ctx = JS_NewContext(rt);
     _vmMap[ctx] = this;
     _rtMap[rt] = this;
-
-    _setupModuleResolver();
     _setupConsole();
     _setupSetTimeout();
+    postConstruct();
   }
 
   void _setupConsole() {
@@ -258,23 +153,6 @@ class QuickJSVm extends Vm implements Disposable {
     final clearTimeoutFn = newFunction('clearTimeout', clearTimeout);
     setProperty(global, 'clearTimeout', clearTimeoutFn);
     _freeJSValue(clearTimeoutFn);
-  }
-
-  Map<String, ModuleResolver> _moduleMap = {};
-  void _setupModuleResolver() {
-    final requireFn = newFunction('require', (args, {thisObj}) {
-      String moduleName = jsToDart(args[0]);
-      if(!_moduleMap.containsKey(moduleName)) {
-        return $undefined;
-      }
-      return _moduleMap[moduleName]!(this);
-    });
-    setProperty(global, 'require', requireFn);
-    _freeJSValue(requireFn);
-  }
-
-  void registerModule(String moduleName, ModuleResolver resolver) {
-    _moduleMap[moduleName] = resolver;
   }
 
   /**
@@ -1096,6 +974,7 @@ class QuickJSVm extends Vm implements Disposable {
    * will result in an error.
    */
   dispose() {
+    super.dispose();
     _eventLoop?.cancel();
     this._heapValues.forEach((val) {
       // String dp = JS_Dump(ctx, val).toDartString();
@@ -1106,7 +985,6 @@ class QuickJSVm extends Vm implements Disposable {
       JS_FreeValuePointer(ctx, val);
     });
     this._scope.dispose();
-    this._moduleMap.clear();
     this._timeoutMap.clear();
     this._fnMap.clear();
     _vmMap.remove(ctx);

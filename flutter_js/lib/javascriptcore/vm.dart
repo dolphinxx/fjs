@@ -193,9 +193,9 @@ class JavaScriptCoreVm extends Vm implements Disposable {
     }));
     _vmMap[ctx] = this;
     _init();
-    _setupModuleResolver();
     _setupConsole();
     _setupSetTimeout();
+    postConstruct();
   }
 
   void _init() {
@@ -307,21 +307,21 @@ return 0
     setProperty(global, 'clearTimeout', newFunction(null, clearTimeout));
   }
 
-  Map<String, ModuleResolver> _moduleMap = {};
-  void _setupModuleResolver() {
-    JSValueRef fn = newFunction('require', (args, {thisObj}) {
-      String moduleName = jsToDart(args[0]);
-      if(!_moduleMap.containsKey(moduleName)) {
-        return $undefined;
-      }
-      return _moduleMap[moduleName]!(this);
-    });
-    setProperty(global, 'require', fn);
-  }
-
-  void registerModule(String moduleName, ModuleResolver resolver) {
-    _moduleMap[moduleName] = resolver;
-  }
+  // Map<String, FlutterJSModule> _moduleMap = {};
+  // void _setupModuleResolver() {
+  //   final JSValueRef fn = newFunction('require', (args, {thisObj}) {
+  //     String moduleName = jsToDart(args[0]);
+  //     if(!_moduleMap.containsKey(moduleName)) {
+  //       return $undefined;
+  //     }
+  //     return _moduleMap[moduleName]!.resolve(this);
+  //   });
+  //   setProperty(global, 'require', fn);
+  // }
+  //
+  // void registerModule(FlutterJSModule module) {
+  //   _moduleMap[module.name] = module;
+  // }
 
   /**
    * [`undefined`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined).
@@ -629,8 +629,8 @@ return 0
 
   /// Dispose of this VM's underlying resources.
   dispose() {
+    super.dispose();
     this._scope.dispose();
-    this._moduleMap.clear();
     this._timeoutMap.clear();
     this._fnMap.clear();
     // print('vm disposed');
@@ -751,8 +751,8 @@ return 0
   }
 
   JSValueRef dartToJS(dynamic value) {
-    if(value is Pointer) {
-      return value as JSValueRef;
+    if(value is JSValueRef) {
+      return value;
     }
     if(value == null) {
       return $null;
