@@ -1174,10 +1174,10 @@ class QuickJSVm extends Vm implements Disposable {
       }
     } catch (error) {
       ownedResultPtr = consumeAndFree(newError(error), (errorHandle) => JS_Throw(_ctx.value, errorHandle));
-    } finally {
+    }/* finally {
       JS_FreeValuePointer(ctx, this_ptr);
       argHandles.forEach((_) => JS_FreeValuePointer(ctx, _));
-    }
+    }*/
     return ownedResultPtr /* as JSValuePointer*/;
   }
 
