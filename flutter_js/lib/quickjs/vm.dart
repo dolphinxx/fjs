@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_js/vm.dart';
 
 import '../error.dart';
+import '../promise.dart';
 import 'qjs_ffi.dart';
 import '../lifetime.dart';
 
@@ -42,121 +43,117 @@ typedef CToHostInterruptImplementation = int Function(JSRuntimePointer rt);
  */
 typedef InterruptHandler = bool? Function(QuickJSVm vm);
 
-/**
- * QuickJSDeferredPromise wraps a QuickJS promise and allows
- * [[resolve]]ing or [[reject]]ing that promise. Use it to bridge asynchronous
- * code on the host to APIs inside a QuickJSVm.
- *
- * Managing the lifetime of promises is tricky. There are three
- * [[QuickJSHandle]]s inside of each deferred promise object: (1) the promise
- * itself, (2) the `resolve` callback, and (3) the `reject` callback.
- *
- * - If the promise will be fufilled before the end of it's [[owner]]'s lifetime,
- *   the only cleanup necessary is `deferred.handle.dispose()`, because
- *   calling [[resolve]] or [[reject]] will dispose of both callbacks automatically.
- *
- * - As the return value of a [[VmFunctionImplementation]], return [[handle]],
- *   and ensure that either [[resolve]] or [[reject]] will be called. No other
- *   clean-up is necessary.
- *
- * - In other cases, call [[dispose]], which will dispose [[handle]] as well as the
- *   QuickJS handles that back [[resolve]] and [[reject]]. For this object,
- *   [[dispose]] is idempotent.
- */
-class QuickJSDeferredPromise implements Disposable {
-  final QuickJSVm owner;
-  final Lifetime<JSValuePointer> _promise;
-  final Lifetime<JSValuePointer> _resolve;
-  final Lifetime<JSValuePointer> _reject;
-
-  /**
-   * A native promise that will resolve once this deferred is settled.
-   */
-  late Future<void> settled;
-  late void Function() onSettled;
-
-  Lifetime<JSValuePointer> get promise => _promise;
-
-  QuickJSDeferredPromise(
-      this.owner, this._promise, this._resolve, this._reject, [Future? future]) {
-    if(future != null) {
-      this.settled = future;
-      this.onSettled = () {};
-    } else {
-      Completer completer = Completer();
-      this.settled = completer.future;
-      this.onSettled = () => completer.complete();
-    }
-  }
-
-  /**
-   * Resolve [[resolve]] with the given value, if any.
-   * Calling this method after calling [[dispose]] is a no-op.
-   *
-   * Note that after resolving a promise, you may need to call
-   * [[executePendingJobs]] to propagate the result to the promise's
-   * callbacks.
-   */
-  void resolve(JSValuePointer? value) {
-    if (!_resolve.alive) {
-      return;
-    }
-    owner._freeJSValue(owner.callFunction(
-        this._resolve.value, owner.$undefined, [value ?? owner.$undefined]));
-    this._disposeResolvers();
-    this.onSettled();
-  }
-
-  /**
-   * Reject [[reject]] with the given value, if any.
-   * Calling this method after calling [[dispose]] is a no-op.
-   *
-   * Note that after rejecting a promise, you may need to call
-   * [[executePendingJobs]] to propagate the result to the promise's
-   * callbacks.
-   */
-  reject(JSValuePointer? value) {
-    if (!_reject.alive) {
-      return;
-    }
-    owner._freeJSValue(owner.callFunction(
-        this._reject.value, owner.$undefined, [value ?? owner.$undefined]));
-    this._disposeResolvers();
-    this.onSettled();
-  }
-
-  get alive {
-    return _promise.alive || _resolve.alive || _reject.alive;
-  }
-
-  dispose() {
-    if (_promise.alive) {
-      _promise.dispose();
-    }
-    this._disposeResolvers();
-  }
-
-  _disposeResolvers() {
-    if (_resolve.alive) {
-      _resolve.dispose();
-    }
-    if (_reject.alive) {
-      _reject.dispose();
-    }
-  }
-}
+// /**
+//  * QuickJSDeferredPromise wraps a QuickJS promise and allows
+//  * [[resolve]]ing or [[reject]]ing that promise. Use it to bridge asynchronous
+//  * code on the host to APIs inside a QuickJSVm.
+//  *
+//  * Managing the lifetime of promises is tricky. There are three
+//  * [[QuickJSHandle]]s inside of each deferred promise object: (1) the promise
+//  * itself, (2) the `resolve` callback, and (3) the `reject` callback.
+//  *
+//  * - If the promise will be fufilled before the end of it's [[owner]]'s lifetime,
+//  *   the only cleanup necessary is `deferred.handle.dispose()`, because
+//  *   calling [[resolve]] or [[reject]] will dispose of both callbacks automatically.
+//  *
+//  * - As the return value of a [[VmFunctionImplementation]], return [[handle]],
+//  *   and ensure that either [[resolve]] or [[reject]] will be called. No other
+//  *   clean-up is necessary.
+//  *
+//  * - In other cases, call [[dispose]], which will dispose [[handle]] as well as the
+//  *   QuickJS handles that back [[resolve]] and [[reject]]. For this object,
+//  *   [[dispose]] is idempotent.
+//  */
+// class QuickJSDeferredPromise implements Disposable {
+//   final QuickJSVm owner;
+//   final Lifetime<JSValuePointer> _promise;
+//   final Lifetime<JSValuePointer> _resolve;
+//   final Lifetime<JSValuePointer> _reject;
+//
+//   /**
+//    * A native promise that will resolve once this deferred is settled.
+//    */
+//   late Future<void> settled;
+//   late void Function() onSettled;
+//
+//   Lifetime<JSValuePointer> get promise => _promise;
+//
+//   QuickJSDeferredPromise(
+//       this.owner, this._promise, this._resolve, this._reject, [Future? future]) {
+//     if(future != null) {
+//       this.settled = future;
+//       this.onSettled = () {};
+//     } else {
+//       Completer completer = Completer();
+//       this.settled = completer.future;
+//       this.onSettled = () => completer.complete();
+//     }
+//   }
+//
+//   /**
+//    * Resolve [[resolve]] with the given value, if any.
+//    * Calling this method after calling [[dispose]] is a no-op.
+//    *
+//    * Note that after resolving a promise, you may need to call
+//    * [[executePendingJobs]] to propagate the result to the promise's
+//    * callbacks.
+//    */
+//   void resolve(JSValuePointer? value) {
+//     if (!_resolve.alive) {
+//       return;
+//     }
+//     owner._freeJSValue(owner.callFunction(
+//         this._resolve.value, owner.nullThis, [value ?? owner.$undefined]));
+//     this._disposeResolvers();
+//     this.onSettled();
+//   }
+//
+//   /**
+//    * Reject [[reject]] with the given value, if any.
+//    * Calling this method after calling [[dispose]] is a no-op.
+//    *
+//    * Note that after rejecting a promise, you may need to call
+//    * [[executePendingJobs]] to propagate the result to the promise's
+//    * callbacks.
+//    */
+//   reject(JSValuePointer? value) {
+//     if (!_reject.alive) {
+//       return;
+//     }
+//     owner._freeJSValue(owner.callFunction(
+//         this._reject.value, owner.nullThis, [value ?? owner.$undefined]));
+//     this._disposeResolvers();
+//     this.onSettled();
+//   }
+//
+//   get alive {
+//     return _promise.alive || _resolve.alive || _reject.alive;
+//   }
+//
+//   dispose() {
+//     if (_promise.alive) {
+//       _promise.dispose();
+//     }
+//     this._disposeResolvers();
+//   }
+//
+//   _disposeResolvers() {
+//     if (_resolve.alive) {
+//       _resolve.dispose();
+//     }
+//     if (_reject.alive) {
+//       _reject.dispose();
+//     }
+//   }
+// }
 
 class QuickJSVm extends Vm implements Disposable {
   static final _vmMap = Map<JSContextPointer, QuickJSVm>();
   static final _rtMap = Map<JSRuntimePointer, QuickJSVm>();
   static bool _initialized = false;
 
-  late final Lifetime<JSRuntimePointer> _rt;
-  late final Lifetime<JSContextPointer> _ctx;
-
-  JSRuntimePointer get rt => _rt.value;
-
-  JSContextPointer get ctx => _ctx.value;
+  late final JSRuntimePointer rt;
+  late final JSContextPointer ctx;
 
   JSValuePointer? _undefined;
   JSValuePointer? _null;
@@ -203,16 +200,10 @@ class QuickJSVm extends Vm implements Disposable {
       _initialized = true;
     }
 
-    _rt = _scope.manage(Lifetime(JS_NewRuntime(), (rt_ptr) {
-      _rtMap.remove(rt_ptr);
-      JS_FreeRuntime(rt_ptr);
-    }));
-    _ctx = _scope.manage(Lifetime(JS_NewContext(_rt.value), (ctx_ptr) {
-      _vmMap.remove(ctx_ptr);
-      JS_FreeContext(ctx_ptr);
-    }));
-    _vmMap[_ctx.value] = this;
-    _rtMap[_rt.value] = this;
+    rt = JS_NewRuntime();
+    ctx = JS_NewContext(rt);
+    _vmMap[ctx] = this;
+    _rtMap[rt] = this;
 
     _setupModuleResolver();
     _setupConsole();
@@ -353,6 +344,8 @@ class QuickJSVm extends Vm implements Disposable {
     return _global!;
   }
 
+  JSValuePointer get nullThis => $undefined;
+
   /**
    * `typeof` operator. **Not** [standards compliant](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/typeof).
    *
@@ -375,7 +368,7 @@ class QuickJSVm extends Vm implements Disposable {
    * @returns `NaN` on error, otherwise a `number`.
    */
   double? getNumber(JSValuePointer value) {
-    return JS_GetFloat64(_ctx.value, value);
+    return JS_GetFloat64(ctx, value);
   }
 
   int? getInt(JSValuePointer value) {
@@ -413,7 +406,7 @@ class QuickJSVm extends Vm implements Disposable {
    * @param prototype - Like [`Object.create`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/create).
    */
   JSValuePointer newObject([Map? value]) {
-    final ptr = JS_NewObject(_ctx.value);
+    final ptr = JS_NewObject(ctx);
     if(value != null) {
       value.forEach((key, value) {
         consumeAndFree(dartToJS(value), (_) => defineProperty(ptr, key, VmPropertyDescriptor(value: _)));
@@ -423,7 +416,7 @@ class QuickJSVm extends Vm implements Disposable {
   }
 
   JSValuePointer newObjectWithPrototype(JSValuePointer prototype, [Map? value]) {
-    final ptr = JS_NewObjectProto(_ctx.value, prototype);
+    final ptr = JS_NewObjectProto(ctx, prototype);
     if(value != null) {
       value.forEach((key, value) {
         consumeAndFree(dartToJS(value), (_) => defineProperty(ptr, key, VmPropertyDescriptor(value: _)));
@@ -437,7 +430,7 @@ class QuickJSVm extends Vm implements Disposable {
    * Create a new QuickJS [array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array).
    */
   JSValuePointer newArray([List<JSValuePointer>? args]) {
-    final ptr = JS_NewArray(_ctx.value);
+    final ptr = JS_NewArray(ctx);
     if(args != null) {
       for(int i = 0;i<args.length;i++) {
         defineProperty(ptr, i, VmPropertyDescriptor(value: args[i]));
@@ -521,7 +514,7 @@ class QuickJSVm extends Vm implements Disposable {
     return extractError(errorPtr);
   }
 
-  QuickJSDeferredPromise newPromise([Future? future]) {
+  JSDeferredPromise newPromise([Future? future]) {
     // Pointer for receiving resolve & reject
     Lifetime<JSValuePointerPointer> resolves = _newMutablePointerArray(2);
     try {
@@ -529,7 +522,7 @@ class QuickJSVm extends Vm implements Disposable {
         ctx,
         resolves.value,
       );
-      final promiseWrapper = _scope.manage(QuickJSDeferredPromise(
+      final promiseWrapper = _scope.manage(JSDeferredPromise(
         this,
         Lifetime(_heapValueHandle(promise)),
         Lifetime(_heapValueHandle(resolves.value[0])),
@@ -572,7 +565,7 @@ class QuickJSVm extends Vm implements Disposable {
     final fnIdHandle = newNumber(fnId.toDouble());
     HeapCharPointer namePtr = name == null ? nullptr : name.toNativeUtf8();
     final funcHandle = this._heapValueHandle(
-        JS_NewFunction(_ctx.value, fnIdHandle, namePtr));
+        JS_NewFunction(ctx, fnIdHandle, namePtr));
     if(name != null) {
       calloc.free(namePtr);
     }
@@ -652,7 +645,7 @@ class QuickJSVm extends Vm implements Disposable {
         ? newFunction('setter', descriptor.set!) : $undefined;
 
     JS_DefineProp(
-      _ctx.value,
+      ctx,
       obj,
       key,
       value,
@@ -689,7 +682,7 @@ class QuickJSVm extends Vm implements Disposable {
   JSValuePointer callFunction(
     JSValuePointer func,
     [JSValuePointer? thisVal,
-      List<JSValuePointer>? args,]
+      List<JSValuePointer>? args]
   ) {
     Lifetime<JSValueConstPointerPointer>? argv;
     int argc;
@@ -713,9 +706,15 @@ class QuickJSVm extends Vm implements Disposable {
     return _heapValueHandle(resultPtr);
   }
 
+  void callVoidFunction(JSValuePointer func,
+      [JSValuePointer? thisVal,
+        List<JSValuePointer>? args]) {
+    _freeJSValue(callFunction(func, thisVal, args));
+  }
+
   /**
    * Like [`eval(code)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval#Description).
-   * Evauatetes the Javascript source `code` in the global scope of this VM.
+   * Evaluates the Javascript source `code` in the global scope of this VM.
    * When working with async code, you many need to call [[executePendingJobs]]
    * to execute callbacks pending after synchronous evaluation returns.
    *
@@ -736,7 +735,7 @@ class QuickJSVm extends Vm implements Disposable {
     HeapCharPointer filenameHandle = (filename??'<eval.js>').toNativeUtf8();
     late final resultPtr;
     try {
-      resultPtr = JS_Eval(_ctx.value, codeHandle, codeHandle.length, filenameHandle, JSEvalFlag.GLOBAL);
+      resultPtr = JS_Eval(ctx, codeHandle, codeHandle.length, filenameHandle, JSEvalFlag.GLOBAL);
     } finally {
       malloc.free(codeHandle);
       malloc.free(filenameHandle);
@@ -768,7 +767,7 @@ class QuickJSVm extends Vm implements Disposable {
    * that stopped execution.
    */
   int executePendingJobs([int maxJobsToExecute = -1]) {
-    final resultValue = JS_ExecutePendingJob(_rt.value, maxJobsToExecute);
+    final resultValue = JS_ExecutePendingJob(rt, maxJobsToExecute);
     final typeOfRet = this.typeof(resultValue);
     if (typeOfRet == 'number') {
       final executedJobs = this.getNumber(resultValue)!.toInt();
@@ -786,7 +785,7 @@ class QuickJSVm extends Vm implements Disposable {
    * @return true if there is at least one pendingJob queued up.
    */
   bool hasPendingJob() {
-    return JS_IsJobPending(_rt.value) > 0;
+    return JS_IsJobPending(rt) > 0;
   }
 
   /**
@@ -803,7 +802,7 @@ class QuickJSVm extends Vm implements Disposable {
       return null /*undefined*/;
     }
 
-    final str = JS_Dump(_ctx.value, value);
+    final str = JS_Dump(ctx, value);
     try {
       return jsonDecode(str.toDartString());
     } catch (err) {
@@ -952,7 +951,7 @@ class QuickJSVm extends Vm implements Disposable {
       return result;
     }
     // fallback
-    final str = JS_Dump(_ctx.value, value);
+    final str = JS_Dump(ctx, value);
     try {
       return jsonDecode(str.toDartString());
     } catch (err) {
@@ -1032,7 +1031,7 @@ class QuickJSVm extends Vm implements Disposable {
     final prevInterruptHandler = _interruptHandler;
     _interruptHandler = cb;
     if (prevInterruptHandler == null) {
-      JS_RuntimeEnableInterruptHandler(_rt.value);
+      JS_RuntimeEnableInterruptHandler(rt);
     }
   }
 
@@ -1046,7 +1045,7 @@ class QuickJSVm extends Vm implements Disposable {
           'Cannot set memory limit to negative number. To unset, pass -1');
     }
 
-    JS_RuntimeSetMemoryLimit(_rt.value, limitBytes);
+    JS_RuntimeSetMemoryLimit(rt, limitBytes);
   }
 
   /**
@@ -1058,7 +1057,7 @@ class QuickJSVm extends Vm implements Disposable {
    */
   JSValuePointer computeMemoryUsage() {
     return this
-        ._heapValueHandle(JS_RuntimeComputeMemoryUsage(_rt.value, _ctx.value));
+        ._heapValueHandle(JS_RuntimeComputeMemoryUsage(rt, ctx));
   }
 
   /**
@@ -1067,7 +1066,7 @@ class QuickJSVm extends Vm implements Disposable {
    */
   String dumpMemoryUsage() {
     try {
-      HeapCharPointer result = JS_RuntimeDumpMemoryUsage(_rt.value, 1024);
+      HeapCharPointer result = JS_RuntimeDumpMemoryUsage(rt, 1024);
       return utf8.decode(result.cast<Uint8>().asTypedList(result.length),
           allowMalformed: true);
     } catch (e) {
@@ -1081,7 +1080,7 @@ class QuickJSVm extends Vm implements Disposable {
    */
   removeInterruptHandler() {
     if (this._interruptHandler != null) {
-      JS_RuntimeDisableInterruptHandler(_rt.value);
+      JS_RuntimeDisableInterruptHandler(rt);
       this._interruptHandler = null;
     }
   }
@@ -1097,8 +1096,9 @@ class QuickJSVm extends Vm implements Disposable {
    * will result in an error.
    */
   dispose() {
+    _eventLoop?.cancel();
     this._heapValues.forEach((val) {
-      // String dp = JS_Dump(_ctx.value, val).toDartString();
+      // String dp = JS_Dump(ctx, val).toDartString();
       // print('Pointer:${val.address} $dp');
       // if(dp == '[unsupported type]') {
       //   print('unsupported type: ${JS_HandyTypeof(ctx, val)}');
@@ -1109,6 +1109,18 @@ class QuickJSVm extends Vm implements Disposable {
     this._moduleMap.clear();
     this._timeoutMap.clear();
     this._fnMap.clear();
+    _vmMap.remove(ctx);
+    JS_FreeContext(ctx);
+    _rtMap.remove(rt);
+    JS_FreeRuntime(rt);
+    // print('vm disposed');
+  }
+
+  Timer? _eventLoop;
+  void startEventLoop([int ms = 50]) {
+    if(_eventLoop == null) {
+      _eventLoop = Timer.periodic(Duration(milliseconds: ms), (timer) => executePendingJobs());
+    }
   }
 
   var _fnNextId = 0;
@@ -1126,7 +1138,7 @@ class QuickJSVm extends Vm implements Disposable {
     argv,
     fn_data,
   ) {
-    if (ctx != _ctx.value) {
+    if (ctx != ctx) {
       throw new JSError(
           'QuickJSVm instance received C -> JS call with mismatched ctx');
     }
@@ -1149,10 +1161,10 @@ class QuickJSVm extends Vm implements Disposable {
       var result = Function.apply(fn, [argHandles], {#thisObj: thisHandle}) as JSValuePointer?;
       if (result != null) {
         _heapValueHandle(result);
-        ownedResultPtr = JS_DupValuePointer(_ctx.value, result);
+        ownedResultPtr = JS_DupValuePointer(ctx, result);
       }
     } catch (error) {
-      ownedResultPtr = consumeAndFree(newError(error), (errorHandle) => JS_Throw(_ctx.value, errorHandle));
+      ownedResultPtr = consumeAndFree(newError(error), (errorHandle) => JS_Throw(ctx, errorHandle));
     }/* finally {
       JS_FreeValuePointer(ctx, this_ptr);
       argHandles.forEach((_) => JS_FreeValuePointer(ctx, _));
@@ -1164,7 +1176,7 @@ class QuickJSVm extends Vm implements Disposable {
 
   /// CToHostInterruptImplementation
   int cToHostInterrupt(rt) {
-    if (rt != _rt.value) {
+    if (rt != rt) {
       throw new JSError(
           'QuickJSVm instance received C -> JS interrupt with mismatched rt');
     }
@@ -1180,7 +1192,7 @@ class QuickJSVm extends Vm implements Disposable {
   /// increase ref_count
   JSValuePointer copyJSValue(
       JSValuePointer/* | JSValueConstPointer*/ ptr) {
-    return _heapValueHandle(JS_DupValuePointer(_ctx.value, ptr));
+    return _heapValueHandle(JS_DupValuePointer(ctx, ptr));
   }
 
   void _freeJSValue(JSValuePointer ptr) {
@@ -1191,7 +1203,7 @@ class QuickJSVm extends Vm implements Disposable {
     if(!removed) {
       throw 'freeing ptr not hold!';
     }
-    JS_FreeValuePointer(_ctx.value, ptr);
+    JS_FreeValuePointer(ctx, ptr);
   }
 
   JSValuePointer _heapValueHandle(JSValuePointer ptr) {

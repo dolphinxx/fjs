@@ -7,6 +7,7 @@ import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 import '../error.dart';
 import '../lifetime.dart';
+import '../promise.dart';
 import '../vm.dart';
 import './binding/js_base.dart';
 import './binding/js_context_ref.dart';
@@ -24,90 +25,94 @@ void _bytesDeallocator(JSValueRef bytes, JSContextRef context) {
   calloc.free(bytes);
 }
 
-class JavaScriptCoreDeferredPromise implements Disposable {
-  final JavaScriptCoreVm owner;
-  final Lifetime<JSValuePointer> _promise;
-  final Lifetime<JSValuePointer> _resolve;
-  final Lifetime<JSValuePointer> _reject;
-
-  /**
-   * A native promise that will resolve once this deferred is settled.
-   */
-  late Future<void> settled;
-  late void Function() onSettled;
-
-  Lifetime<JSValuePointer> get promise => _promise;
-
-  JavaScriptCoreDeferredPromise(
-      this.owner, this._promise, this._resolve, this._reject, [Future? future]) {
-    if(future != null) {
-      this.settled = future;
-      this.onSettled = () {};
-    } else {
-      Completer completer = Completer();
-      this.settled = completer.future;
-      this.onSettled = () => completer.complete();
-    }
-  }
-
-  /**
-   * Resolve [[resolve]] with the given value, if any.
-   * Calling this method after calling [[dispose]] is a no-op.
-   *
-   * Note that after resolving a promise, you may need to call
-   * [[executePendingJobs]] to propagate the result to the promise's
-   * callbacks.
-   */
-  void resolve(JSValuePointer? value) {
-    if (!_resolve.alive) {
-      return;
-    }
-    final JSValueRefArray args = owner.createValueRefArray([value??owner.$undefined]);
-    owner.runWithExceptionHandle((exception) => jSObjectCallAsFunction(owner.ctx, _resolve.value, nullptr, 1,
-        args, exception), () => calloc.free(args));
-    this._disposeResolvers();
-    this.onSettled();
-  }
-
-  /**
-   * Reject [[reject]] with the given value, if any.
-   * Calling this method after calling [[dispose]] is a no-op.
-   *
-   * Note that after rejecting a promise, you may need to call
-   * [[executePendingJobs]] to propagate the result to the promise's
-   * callbacks.
-   */
-  reject(JSValuePointer? value) {
-    if (!_reject.alive) {
-      return;
-    }
-    final JSValueRefArray args = owner.createValueRefArray([value??owner.$undefined]);
-    owner.runWithExceptionHandle((exception) => jSObjectCallAsFunction(owner.ctx, _reject.value, nullptr, 1,
-        args, exception), () => calloc.free(args));
-    this._disposeResolvers();
-    this.onSettled();
-  }
-
-  get alive {
-    return _promise.alive || _resolve.alive || _reject.alive;
-  }
-
-  dispose() {
-    if (_promise.alive) {
-      _promise.dispose();
-    }
-    this._disposeResolvers();
-  }
-
-  _disposeResolvers() {
-    if (_resolve.alive) {
-      _resolve.dispose();
-    }
-    if (_reject.alive) {
-      _reject.dispose();
-    }
-  }
-}
+// class JavaScriptCoreDeferredPromise implements Disposable {
+//   final JavaScriptCoreVm owner;
+//   final Lifetime<JSValuePointer> _promise;
+//   final Lifetime<JSValuePointer> _resolve;
+//   final Lifetime<JSValuePointer> _reject;
+//
+//   /**
+//    * A native promise that will resolve once this deferred is settled.
+//    */
+//   late Future<void> settled;
+//   late void Function() onSettled;
+//
+//   Lifetime<JSValuePointer> get promise => _promise;
+//
+//   JavaScriptCoreDeferredPromise(
+//       this.owner, this._promise, this._resolve, this._reject, [Future? future]) {
+//     if(future != null) {
+//       this.settled = future;
+//       this.onSettled = () {};
+//     } else {
+//       Completer completer = Completer();
+//       this.settled = completer.future;
+//       this.onSettled = () => completer.complete();
+//     }
+//   }
+//
+//   /**
+//    * Resolve [[resolve]] with the given value, if any.
+//    * Calling this method after calling [[dispose]] is a no-op.
+//    *
+//    * Note that after resolving a promise, you may need to call
+//    * [[executePendingJobs]] to propagate the result to the promise's
+//    * callbacks.
+//    */
+//   void resolve(JSValuePointer? value) {
+//     if (!_resolve.alive) {
+//       return;
+//     }
+//     owner.callFunction(
+//         this._resolve.value, owner.nullThis, [value ?? owner.$undefined]);
+//     // final JSValueRefArray args = owner.createValueRefArray([value??owner.$undefined]);
+//     // owner.runWithExceptionHandle((exception) => jSObjectCallAsFunction(owner.ctx, _resolve.value, nullptr, 1,
+//     //     args, exception), () => calloc.free(args));
+//     this._disposeResolvers();
+//     this.onSettled();
+//   }
+//
+//   /**
+//    * Reject [[reject]] with the given value, if any.
+//    * Calling this method after calling [[dispose]] is a no-op.
+//    *
+//    * Note that after rejecting a promise, you may need to call
+//    * [[executePendingJobs]] to propagate the result to the promise's
+//    * callbacks.
+//    */
+//   reject(JSValuePointer? value) {
+//     if (!_reject.alive) {
+//       return;
+//     }
+//     owner.callFunction(
+//         this._reject.value, owner.nullThis, [value ?? owner.$undefined]);
+//     // final JSValueRefArray args = owner.createValueRefArray([value??owner.$undefined]);
+//     // owner.runWithExceptionHandle((exception) => jSObjectCallAsFunction(owner.ctx, _reject.value, nullptr, 1,
+//     //     args, exception), () => calloc.free(args));
+//     this._disposeResolvers();
+//     this.onSettled();
+//   }
+//
+//   get alive {
+//     return _promise.alive || _resolve.alive || _reject.alive;
+//   }
+//
+//   dispose() {
+//     if (_promise.alive) {
+//       _promise.dispose();
+//     }
+//     this._disposeResolvers();
+//   }
+//
+//   _disposeResolvers() {
+//     if (_resolve.alive) {
+//       _resolve.dispose();
+//     }
+//     if (_reject.alive) {
+//       _reject.dispose();
+//     }
+//   }
+// }
 
 abstract class JSHandyType {
   static const int js_unknown = 0;
@@ -377,6 +382,8 @@ return 0
     return (_global = jSContextGetGlobalObject(ctx));
   }
 
+  JSValueRef get nullThis => nullptr;
+
   /**
    * Converts [value] into a JS value.
    */
@@ -468,7 +475,7 @@ return 0
     return runWithExceptionHandle((exception) => jSObjectMakeArray(ctx, args?.length??0, argv, exception), () {if(args != null) calloc.free(argv);});
   }
 
-  JSObjectRef newArrayBufferNoCopy(Uint8List val) {
+  JSObjectRef newArrayBuffer(Uint8List val) {
     final ptr = calloc<Uint8>(val.length);
     final byteList = ptr.asTypedList(val.length);
     byteList.setAll(0, val);
@@ -507,7 +514,7 @@ return 0
     return ptr;
   }
 
-  JavaScriptCoreDeferredPromise newPromise([Future? future]) {
+  JSDeferredPromise newPromise([Future? future]) {
     final resolve = calloc<JSValueRef>();
     final reject = calloc<JSValueRef>();
     final exception = calloc<JSValueRef>();
@@ -524,7 +531,7 @@ return 0
       throw error;
     }
     // in case promise is not resolved/rejected, and not disposed.
-    final promiseWrapper = _scope.manage(JavaScriptCoreDeferredPromise(
+    final promiseWrapper = _scope.manage(JSDeferredPromise(
       this,
       Lifetime(promise),
       Lifetime(resolve[0], (_) =>calloc.free(resolve)),
@@ -585,13 +592,29 @@ return 0
     return getProp(obj, key);
   }
 
-  JSValueRef callFunction(
-      JSObjectRef func,
-      JSObjectRef? thisVal,
-      List<JSValueRef> args,
-      ) {
-    JSValueRefArray argsRef = createValueRefArray(args);
-    return runWithExceptionHandle((exception) => jSObjectCallAsFunction(ctx, func, thisVal??nullptr, args.length, argsRef, exception), () => calloc.free(argsRef));
+  JSValueRef callFunction(JSObjectRef func,
+      [JSObjectRef? thisVal, List<JSValueRef>? args]) {
+    JSValueRefArray? argv;
+    int argc;
+    if (args?.isNotEmpty != true) {
+      argc = 0;
+    } else {
+      argc = args!.length;
+      argv = createValueRefArray(args);
+    }
+    return runWithExceptionHandle(
+        (exception) => jSObjectCallAsFunction(
+            ctx, func, thisVal ?? nullptr, argc, argv ?? nullptr, exception),
+        () {
+      if (argv != null) {
+        calloc.free(argv);
+      }
+    });
+  }
+
+  void callVoidFunction(JSObjectRef func,
+      [JSObjectRef? thisVal, List<JSValueRef>? args]) {
+    callFunction(func, thisVal, args);
   }
 
   JSValueRef evalCode(String code, {String? filename}) {
@@ -610,6 +633,7 @@ return 0
     this._moduleMap.clear();
     this._timeoutMap.clear();
     this._fnMap.clear();
+    // print('vm disposed');
   }
 
   dynamic jsToDart(JSValueRef jsValueRef) {
@@ -761,7 +785,7 @@ return 0
       return newNumber(value.millisecondsSinceEpoch);
     }
     if(value is TypedData && value is List<int>) {
-      return newArrayBufferNoCopy(value is Uint8List ? value : value.buffer.asUint8List());
+      return newArrayBuffer(value is Uint8List ? value : value.buffer.asUint8List());
     }
     if(value is List) {
       return newArray(value.map((e) => dartToJS(e)).toList());

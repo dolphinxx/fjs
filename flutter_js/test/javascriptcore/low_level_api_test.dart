@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:flutter_js/error.dart';
 import 'package:flutter_js/javascriptcore/binding/js_base.dart';
 import 'package:flutter_js/javascriptcore/binding/js_object_ref.dart';
 import 'package:flutter_js/javascriptcore/binding/js_string_ref.dart';
@@ -39,7 +38,7 @@ void main() {
       /// containing terminating '\0'
       int length = jSStringGetMaximumUTF8CStringSize(strRef);
       Pointer<Utf8> buff = malloc<Uint8>(length).cast();
-      int len = jSStringGetUTF8CString(strRef, buff, length);
+      // int len = jSStringGetUTF8CString(strRef, buff, length);
       malloc.free(buff);
       jSStringRelease(strRef);
       // remove terminating '\0'
@@ -84,7 +83,7 @@ void main() {
     });
     test('newArrayBufferCopy', () {
       List<int> expected = utf8.encode('Hello World!');
-      final handle = vm.newArrayBufferNoCopy(Uint8List.fromList(expected));
+      final handle = vm.newArrayBuffer(Uint8List.fromList(expected));
       final utf8str = 'byteLength'.toNativeUtf8();
       final JSStringRef lengthStr = jSStringCreateWithUTF8CString(utf8str);
       malloc.free(utf8str);

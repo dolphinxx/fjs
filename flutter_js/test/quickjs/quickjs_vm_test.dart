@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:flutter_js/promise.dart';
 import 'package:test/test.dart';
 
 import 'package:flutter_js/quickjs/vm.dart';
@@ -446,7 +447,7 @@ void main() {
 
       test('passes an end-to-end test', () async {
         final expectedValue = math.Random().nextInt(100);
-        QuickJSDeferredPromise? deferred;
+        JSDeferredPromise? deferred;
 
         Future timeout(int ms) {
           return Future.delayed(Duration(milliseconds: ms));
