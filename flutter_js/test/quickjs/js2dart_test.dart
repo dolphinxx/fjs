@@ -41,7 +41,7 @@ void main() {
       expect(vm.evalAndConsume('new Boolean(true)', (_) => vm.jsToDart(_)), isTrue);
     });
     test('string values', () {
-      expect(vm.consumeAndFree(vm.evalUnsafe('\'Hello World!\''), (_) => vm.jsToDart(_)), 'Hello World!');
+      expect(vm.consumeAndFree(vm.evalCode('\'Hello World!\''), (_) => vm.jsToDart(_)), 'Hello World!');
       expect(vm.evalAndConsume('`Hello`', (_) => vm.jsToDart(_)), 'Hello');
       expect(vm.evalAndConsume('"Hello"', (_) => vm.jsToDart(_)), 'Hello');
       expect(vm.evalAndConsume('String("Hello")', (_) => vm.jsToDart(_)), 'Hello');
@@ -79,7 +79,7 @@ void main() {
       }
     });
     test('promise with timeout values', () async {
-      final evalResult = vm.evalUnsafe('''
+      final evalResult = vm.evalCode('''
       new Promise((resolve, reject) => 
         setTimeout(function() {
           console.log(1);

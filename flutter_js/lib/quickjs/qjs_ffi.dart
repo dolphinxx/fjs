@@ -59,7 +59,7 @@ typedef QJS_C_To_HostInterruptFuncPointer = Pointer<
         Uint32 Function(JSRuntimePointer)> /*'C_To_HostInterruptFunc'*/ >;
 
 /// void JSFreeArrayBufferDataFunc(JSRuntime *rt, void *opaque, void *ptr)
-typedef JSFreeArrayBufferDataFunc = void Function(JSRuntimePointer rt, Pointer opaque, Pointer ptr);
+typedef JSFreeArrayBufferDataFunc = Void Function(JSRuntimePointer rt, Pointer opaque, Pointer<Uint8> ptr);
 
 abstract class JSEvalFlag {
   static const GLOBAL = 0 << 0;/* global code (default) */
@@ -328,11 +328,10 @@ final JS_NewArrayBufferCopy = dylib.lookupFunction<
   JSValuePointer Function(JSContextPointer ctx, Pointer<Uint8> buf, int len)
   >("QJS_NewArrayBufferCopy");
 
-/// use `js_free_rt(rt, ptr);` if [free_func] is nullptr
 ///
 /// JSValue *QJS_NewArrayBuffer(JSContext *ctx, uint8_t *buf, size_t len, JSFreeArrayBufferDataFunc *free_func, void *opaque, int is_shared)
 final JS_NewArrayBuffer = dylib.lookupFunction<
-  JSValuePointer Function(JSContextPointer, Pointer<Uint8>, IntPtr, Pointer, Pointer, Uint32),
+  JSValuePointer Function(JSContextPointer, Pointer<Uint8>, IntPtr, Pointer<NativeFunction<JSFreeArrayBufferDataFunc>>, Pointer, Uint32),
   JSValuePointer Function(JSContextPointer ctx, Pointer<Uint8> buf, int len, Pointer<NativeFunction<JSFreeArrayBufferDataFunc>> free_func, Pointer opaque, int is_shared)
 >("QJS_NewArrayBuffer");
 

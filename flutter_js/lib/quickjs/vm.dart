@@ -771,13 +771,6 @@ class QuickJSVm extends Vm implements Disposable {
     return consumeAndFree(evalCode(code), map);
   }
 
-  /// Auto unwrap `VmCallResult`
-  ///
-  /// *Unsafe* means an exception may throw.
-  JSValuePointer evalUnsafe(String code, {String? filename}) {
-    return evalCode(code, filename: filename);
-  }
-
   /**
    * Execute pendingJobs on the VM until `maxJobsToExecute` jobs are executed
    * (default all pendingJobs), the queue is exhausted, or the runtime
