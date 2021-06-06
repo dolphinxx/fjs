@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_js/javascriptcore/vm.dart';
+import 'package:flutter_js/types.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -10,7 +11,7 @@ void main() {
       vm = JavaScriptCoreVm();
     });
     tearDown(() {
-      vm;
+      vm.dispose();
     });
     test('null values', () {
       final _ = vm.dartToJS(null);

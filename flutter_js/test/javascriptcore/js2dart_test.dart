@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_js/error.dart';
 import 'package:flutter_js/lifetime.dart';
+import 'package:flutter_js/types.dart';
 import 'package:flutter_js/javascriptcore/vm.dart';
 import 'package:test/test.dart';
 
