@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_js/error.dart';
-import 'package:flutter_js/lifetime.dart';
 import 'package:flutter_js/types.dart';
 import 'package:flutter_js/javascriptcore/vm.dart';
 import 'package:test/test.dart';
@@ -56,10 +55,8 @@ void main() {
       expect(vm.jsToDart(vm.evalCode('var str = "Hello World!";var buf = new ArrayBuffer(str.length);var bv = new Uint8Array(buf);for(var i = 0;i<str.length;i++)bv[i]=str.charCodeAt(i);buf')), Uint8List.fromList(utf8.encode("Hello World!")));
     });
     test('function values', () {
-      Scope.withScope((scope) {
-        String actual = vm.jsToDart((vm.jsToDart(vm.evalCode(r'(function(message) {return `Hello ${this}!${message}`})')) as JSToDartFunction)([vm.newString("Flutter 2021!")], thisObj: vm.newString("World"))!);
-        expect(actual, "Hello World!Flutter 2021!");
-      });
+      String actual = vm.jsToDart((vm.jsToDart(vm.evalCode(r'(function(message) {return `Hello ${this}!${message}`})')) as JSToDartFunction)([vm.newString("Flutter 2021!")], thisObj: vm.newString("World"))!);
+      expect(actual, "Hello World!Flutter 2021!");
     });
     test('date values', () {
       vm.constructDate = false;
