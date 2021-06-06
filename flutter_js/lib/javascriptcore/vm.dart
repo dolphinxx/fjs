@@ -445,7 +445,17 @@ return 0
    *
    * @param prototype - Like [`Object.create`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/create).
    */
-  JSObjectRef newObject({Pointer? jsClass, Pointer? data}) {
+  JSObjectRef newObject([Map? value]) {
+    final result = jSObjectMake(ctx, nullptr, nullptr);
+    if(value != null) {
+      value.forEach((key, value) => setProperty(result, key, dartToJS(value)));
+    }
+    return result;
+  }
+
+  // Dart doesn't support declaring optional positional and named parameters at the same time yet,
+  // so we have to split it into two functions.
+  JSObjectRef newObjectWithData({Pointer? jsClass, Pointer? data}) {
     return jSObjectMake(ctx, jsClass??nullptr, data??nullptr);
   }
 
@@ -760,9 +770,7 @@ return 0
       return newPromise(value).promise.value;
     }
     if(value is Map) {
-        final result = newObject();
-        value.forEach((key, value) => setProperty(result, key, dartToJS(value)));
-        return result;
+      return newObject(value);
     }
     // fallback to json serialize/deserialize
     String json = jsonEncode(value);

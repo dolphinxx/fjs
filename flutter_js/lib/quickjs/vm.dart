@@ -428,10 +428,23 @@ class QuickJSVm extends Vm implements Disposable {
    *
    * @param prototype - Like [`Object.create`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/create).
    */
-  JSValuePointer newObject([JSValuePointer? prototype]) {
-    final ptr = prototype != null
-        ? JS_NewObjectProto(_ctx.value, prototype)
-        : JS_NewObject(_ctx.value);
+  JSValuePointer newObject([Map? value]) {
+    final ptr = JS_NewObject(_ctx.value);
+    if(value != null) {
+      value.forEach((key, value) {
+        consumeAndFree(dartToJS(value), (_) => defineProperty(ptr, key, VmPropertyDescriptor(value: _)));
+      });
+    }
+    return _heapValueHandle(ptr);
+  }
+
+  JSValuePointer newObjectWithPrototype(JSValuePointer prototype, [Map? value]) {
+    final ptr = JS_NewObjectProto(_ctx.value, prototype);
+    if(value != null) {
+      value.forEach((key, value) {
+        consumeAndFree(dartToJS(value), (_) => defineProperty(ptr, key, VmPropertyDescriptor(value: _)));
+      });
+    }
     return _heapValueHandle(ptr);
   }
 
@@ -1028,12 +1041,7 @@ class QuickJSVm extends Vm implements Disposable {
       return newPromise(value).promise.value;
     }
     if(value is Map) {
-      // FIXME: construct with Map
-      final result = newObject();
-      value.forEach((key, value) {
-        consumeAndFree(dartToJS(value), (_) => defineProperty(result, key, VmPropertyDescriptor(value: _)));
-      });
-      return result;
+      return newObject(value);
     }
     // fallback
     String json = jsonEncode(value);

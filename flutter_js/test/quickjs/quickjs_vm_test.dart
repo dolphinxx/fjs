@@ -172,7 +172,7 @@ void main() {
         final greeterPrototype = vm.newObject();
         vm.setProperty(
             greeterPrototype, 'greeting', defaultGreeting);
-        final greeter = vm.newObject(greeterPrototype);
+        final greeter = vm.newObjectWithPrototype(greeterPrototype);
 
 // Gets something from the prototype
         final getGreeting = vm.getProperty(greeter, 'greeting');
