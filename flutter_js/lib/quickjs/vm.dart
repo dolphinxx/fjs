@@ -18,8 +18,8 @@ class VmPropertyDescriptor<VmHandle> {
   JSValuePointer? value;
   bool? configurable;
   bool? enumerable;
-  VmFunctionImplementation? get;
-  VmFunctionImplementation? set;
+  JSToDartFunction? get;
+  JSToDartFunction? set;
 
   VmPropertyDescriptor({
     this.value,
@@ -146,24 +146,6 @@ class QuickJSDeferredPromise implements Disposable {
   }
 }
 
-typedef QuickJSHandle = Lifetime<JSValuePointer>;
-
-/**
- * A VmFunctionImplementation takes handles as arguments.
- * It should return a handle, or be void.
- *
- * To indicate an exception, a VMs can throw either a handle (transferred
- * directly) or any other Javascript value (only the poperties `name` and
- * `message` will be transferred). Or, the VmFunctionImplementation may return
- * a VmCallResult's `{ error: handle }` error variant.
- *
- * VmFunctionImplementation should not free its arguments or its return value.
- * It should not retain a reference to its return value or thrown error.
- */
-typedef VmFunctionImplementation
-    = /*VmHandle | VmCallResult<VmHandle> | void*/ JSValuePointer?
-        Function(List<JSValuePointer> args, {JSValuePointer? thisObj});
-
 class QuickJSVm extends Vm implements Disposable {
   static final _vmMap = Map<JSContextPointer, QuickJSVm>();
   static final _rtMap = Map<JSRuntimePointer, QuickJSVm>();
@@ -240,7 +222,7 @@ class QuickJSVm extends Vm implements Disposable {
   void _setupConsole() {
     final JSValuePointer console = newObject();
     setProperty(global, 'console', console);
-    VmFunctionImplementation logFn = (List<JSValuePointer> args, {JSValuePointer? thisObj}) {
+    JSToDartFunction logFn = (List<JSValuePointer> args, {JSValuePointer? thisObj}) {
       if(disableConsoleInRelease && kReleaseMode) {
         return;
       }
@@ -261,7 +243,7 @@ class QuickJSVm extends Vm implements Disposable {
   int _timeoutNextId = 1;
   Map<int, Future> _timeoutMap = {};
   void _setupSetTimeout() {
-    VmFunctionImplementation setTimeout = (List<JSValuePointer> args, {JSValuePointer? thisObj}) {
+    JSToDartFunction setTimeout = (List<JSValuePointer> args, {JSValuePointer? thisObj}) {
       int id = _timeoutNextId++;
       JSValuePointer fn = JS_DupValuePointer(ctx, args[0]);
       int ms = getInt(args[1])!;
@@ -278,7 +260,7 @@ class QuickJSVm extends Vm implements Disposable {
     final setTimeoutFn = newFunction('setTimeout', setTimeout);
     setProperty(global, 'setTimeout', setTimeoutFn);
     _freeJSValue(setTimeoutFn);
-    VmFunctionImplementation clearTimeout = (List<JSValuePointer> args, {JSValuePointer? thisObj}) {
+    JSToDartFunction clearTimeout = (List<JSValuePointer> args, {JSValuePointer? thisObj}) {
       int id = getInt(args[0])!;
       _timeoutMap.remove(id);
     };
@@ -566,10 +548,10 @@ class QuickJSVm extends Vm implements Disposable {
 
   /**
    * Convert a Javascript function into a QuickJS function value.
-   * See [[VmFunctionImplementation]] for more details.
+   * See [[JSToDartFunction]] for more details.
    *
-   * A [[VmFunctionImplementation]] should not free its arguments or its retun
-   * value. A VmFunctionImplementation should also not retain any references to
+   * A [[JSToDartFunction]] should not free its arguments or its retun
+   * value. A JSToDartFunction should also not retain any references to
    * its return value.
    *
    * To implement an async function, create a promise with [[newPromise]], then
@@ -583,7 +565,7 @@ class QuickJSVm extends Vm implements Disposable {
    * ```
    *
    */
-  JSValuePointer newFunction(String? name, VmFunctionImplementation fn) {
+  JSValuePointer newFunction(String? name, JSToDartFunction fn) {
     final fnId = ++_fnNextId;
     _fnMap[fnId] = fn;
 
@@ -978,7 +960,7 @@ class QuickJSVm extends Vm implements Disposable {
     }
   }
 
-  /// If [value] is dart function, it must be able to cast to [VmFunctionImplementation].
+  /// If [value] is dart function, it must be able to cast to [JSToDartFunction].
   ///
   /// [value] must be able to be serialize to JSON through `jsonEncode` if it is not one of the supported types.
   JSValuePointer dartToJS(dynamic value) {
@@ -1008,7 +990,7 @@ class QuickJSVm extends Vm implements Disposable {
       return newNumber(value);
     }
     if(value is Function) {
-      return newFunction(null, value as VmFunctionImplementation);
+      return newFunction(null, value as JSToDartFunction);
     }
     if(value is DateTime) {
       if(constructDate) {
@@ -1130,7 +1112,7 @@ class QuickJSVm extends Vm implements Disposable {
   }
 
   var _fnNextId = 0;
-  var _fnMap = new Map<int, VmFunctionImplementation>();
+  var _fnMap = new Map<int, JSToDartFunction>();
 
   /**
    * @hidden

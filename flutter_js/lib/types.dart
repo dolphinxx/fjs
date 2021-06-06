@@ -55,9 +55,10 @@ typedef HeapCharPointer = Pointer<Utf8> /*Pointer<'char'>*/;
 
 typedef HeapUnicodeCharPointer = Pointer<Utf16>;
 
-/// The type representing JS function values transferred to Dart value.
+/// Used for `newFunction`
 ///
-/// result type: JSValueRef | void
+/// Implementations should not free its arguments or its return value.
+/// It should not retain a reference to its return value or thrown error.
 typedef JSToDartFunction = JSValuePointer? Function(List<JSValuePointer> args, {JSValuePointer? thisObj});
 
 const DART_UNDEFINED = #Undefined;

@@ -82,7 +82,7 @@ void main() {
         ''');
     });
     test('function values', () {
-      VmFunctionImplementation fn = (args, {thisObj}) {
+      JSToDartFunction fn = (args, {thisObj}) {
         return vm.newString('Hello ${vm.jsToDart(args[0])}!');
       };
       final _ = vm.dartToJS(fn);
