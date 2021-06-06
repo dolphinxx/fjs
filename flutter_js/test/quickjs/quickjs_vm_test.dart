@@ -9,8 +9,9 @@ import 'dart:math' as math;
 
 import 'package:test/test.dart';
 
-import '../../lib/quickjs/vm.dart';
-import '../../lib/error.dart';
+import 'package:flutter_js/quickjs/vm.dart';
+import 'package:flutter_js/types.dart';
+import 'package:flutter_js/error.dart';
 
 String jsTypeof(val) {
   if (val == null) {
@@ -47,42 +48,37 @@ void main() {
       test('can round-trip a number', () {
         final jsNumber = 42.0;
         final numHandle = vm.newNumber(jsNumber);
-        expect(vm.getNumber(numHandle.value), jsNumber);
+        expect(vm.getNumber(numHandle), jsNumber);
       });
 
       test('can round-trip a string', () {
         final jsString = 'an example 🤔 string with unicode 🎉';
         final stringHandle = vm.newString(jsString);
-        expect(vm.getString(stringHandle.value), jsString);
-        stringHandle.dispose();
+        expect(vm.getString(stringHandle), jsString);
       });
 
       test('can round-trip undefined', () {
-        expect(vm.dump(vm.$undefined.value), isNull);
+        expect(vm.dump(vm.$undefined), isNull);
       });
 
       test('can round-trip true', () {
-        expect(vm.dump(vm.$true.value), isTrue);
+        expect(vm.dump(vm.$true), isTrue);
       });
 
       test('can round-trip false', () {
-        expect(vm.dump(vm.$false.value), isFalse);
+        expect(vm.dump(vm.$false), isFalse);
       });
 
       test('can round-trip null', () {
-        expect(vm.dump(vm.$null.value), isNull);
+        expect(vm.dump(vm.$null), isNull);
       });
     });
 
     group('functions', () {
       test('empty name is valid', () {
         final fnHandle = vm.newFunction(null, (args, {thisObj}) => vm.newNumber(1024));
-        final result = vm.callFunction(fnHandle.value, vm.$undefined.value, []);
-        if (result.error != null) {
-          throw ('calling fnHandle must succeed');
-        }
-        expect(vm.getNumber(result.value!.value), 1024);
-        fnHandle.dispose();
+        final result = vm.callFunction(fnHandle, vm.$undefined, []);
+        expect(vm.getNumber(result), 1024);
       });
       test('can wrap a Javascript function and call it', () {
         final some = 9;
@@ -90,12 +86,8 @@ void main() {
           return vm.newNumber(some + vm.getNumber(args[0])!);
         });
         final result = vm.callFunction(
-            fnHandle.value, vm.$undefined.value, [vm.newNumber(1).value]);
-        if (result.error != null) {
-          throw ('calling fnHandle must succeed');
-        }
-        expect(vm.getNumber(result.value!.value), 10);
-        fnHandle.dispose();
+            fnHandle, vm.$undefined, [vm.newNumber(1)]);
+        expect(vm.getNumber(result), 10);
       });
 
       test('passes through native exceptions', () {
@@ -103,16 +95,12 @@ void main() {
           throw ('oops');
         });
 
-        final result = vm.callFunction(fnHandle.value, vm.$undefined.value, []);
-        if (result.error == null) {
+        try {
+          vm.callFunction(fnHandle, vm.$undefined, []);
           throw ('function call must return error');
+        } on JSError catch(e) {
+          expect(e.toMap(), allOf(containsPair('name', 'Error'), containsPair('message', 'oops')));
         }
-        expect(vm.dump(result.error!.value), {
-          'name': 'Error',
-          'message': 'oops',
-        });
-        result.error!.dispose();
-        fnHandle.dispose();
       });
 
       test('can return undefined twice', () {
@@ -120,38 +108,26 @@ void main() {
           return vm.$undefined;
         });
 
-        vm
-            .unwrapResult(
-                vm.callFunction(fnHandle.value, vm.$undefined.value, []))
-            .dispose();
-        final result = vm.unwrapResult(
-            vm.callFunction(fnHandle.value, vm.$undefined.value, []));
+        vm.callFunction(fnHandle, vm.$undefined, []);
+        final result = vm.callFunction(fnHandle, vm.$undefined, []);
 
-        expect(vm.typeof(result.value), 'undefined');
-        result.dispose();
-        fnHandle.dispose();
+        expect(vm.typeof(result), 'undefined');
       });
 
       test('can see its arguments being cloned', () {
-        QuickJSHandle? value;
+        JSValuePointer? value;
 
         final fnHandle = vm.newFunction('doSomething', (args, {thisObj}) {
           value = vm.copyJSValue(args.first);
         });
 
         final argHandle = vm.newString('something');
-        final callHandle = vm.callFunction(
-            fnHandle.value, vm.$undefined.value, [argHandle.value]);
-
-        argHandle.dispose();
-        vm.unwrapResult(callHandle).dispose();
+        vm.callFunction(
+            fnHandle, vm.$undefined, [argHandle]);
 
         if (value == null) throw ('Value unset');
 
-        expect(vm.getString(value!.value), 'something');
-        value!.dispose();
-
-        fnHandle.dispose();
+        expect(vm.getString(value!), 'something');
       });
     });
 
@@ -159,17 +135,15 @@ void main() {
       test('defining a property does not leak', () {
         final nameHandle = vm.newString('Name');
         vm.defineProp(
-            vm.global.value,
-            nameHandle.value,
+            vm.global,
+            nameHandle,
             VmPropertyDescriptor(
               enumerable: false,
               configurable: false,
               get: (args, {thisObj}) => vm.newString('World'),
             ));
-        nameHandle.dispose();
-        final result = vm.unwrapResult(vm.evalCode('"Hello " + Name'));
-        expect(vm.dump(result.value), 'Hello World');
-        result.dispose();
+        final result = vm.evalCode('"Hello " + Name');
+        expect(vm.dump(result), 'Hello World');
       });
     });
 
@@ -178,56 +152,39 @@ void main() {
         final object = vm.newObject();
         final value = vm.newNumber(42);
         final nameHandle = vm.newString('propName');
-        vm.setProp(object.value, nameHandle.value, value.value);
-        final value2 = vm.getProp(object.value, nameHandle.value);
-        expect(vm.getNumber(value2.value), 42);
-
-        nameHandle.dispose();
-        object.dispose();
-        value.dispose();
-        value2.dispose();
+        vm.setProp(object, nameHandle, value);
+        final value2 = vm.getProp(object, nameHandle);
+        expect(vm.getNumber(value2), 42);
       });
 
       test('can set and get properties by handle string', () {
         final object = vm.newObject();
         final key = vm.newString('prop as a QuickJS string');
         final value = vm.newNumber(42);
-        vm.setProp(object.value, key.value, value.value);
+        vm.setProp(object, key, value);
 
-        final value2 = vm.getProp(object.value, key.value);
-        expect(vm.getNumber(value2.value), 42);
-
-        object.dispose();
-        key.dispose();
-        value.dispose();
-        value2.dispose();
+        final value2 = vm.getProp(object, key);
+        expect(vm.getNumber(value2), 42);
       });
 
       test('can create objects with a prototype', () {
         final defaultGreeting = vm.newString('SUP DAWG');
         final greeterPrototype = vm.newObject();
         vm.setProperty(
-            greeterPrototype.value, 'greeting', defaultGreeting.value);
-        defaultGreeting.dispose();
-        final greeter = vm.newObject(greeterPrototype.value);
+            greeterPrototype, 'greeting', defaultGreeting);
+        final greeter = vm.newObject(greeterPrototype);
 
 // Gets something from the prototype
-        final getGreeting = vm.getProperty(greeter.value, 'greeting');
-        expect(vm.getString(getGreeting.value), 'SUP DAWG');
-        getGreeting.dispose();
+        final getGreeting = vm.getProperty(greeter, 'greeting');
+        expect(vm.getString(getGreeting), 'SUP DAWG');
 
 // But setting a property from the prototype does not modify the prototype
         final newGreeting = vm.newString('How do you do?');
-        vm.setProperty(greeter.value, 'greeting', newGreeting.value);
-        newGreeting.dispose();
+        vm.setProperty(greeter, 'greeting', newGreeting);
 
         final originalGreeting =
-            vm.getProperty(greeterPrototype.value, 'greeting');
-        expect(vm.getString(originalGreeting.value), 'SUP DAWG');
-        originalGreeting.dispose();
-
-        greeterPrototype.dispose();
-        greeter.dispose();
+            vm.getProperty(greeterPrototype, 'greeting');
+        expect(vm.getString(originalGreeting), 'SUP DAWG');
       });
     });
 
@@ -235,83 +192,48 @@ void main() {
       test('can set and get entries by native number', () {
         final array = vm.newArray();
         final val1 = vm.newNumber(101);
-        vm.setProperty(array.value, 0, val1.value);
+        vm.setProperty(array, 0, val1);
 
-        final val2 = vm.getProperty(array.value, 0);
-        expect(vm.getNumber(val2.value), 101);
-
-        array.dispose();
-        val1.dispose();
-        val2.dispose();
+        final val2 = vm.getProperty(array, 0);
+        expect(vm.getNumber(val2), 101);
       });
 
       test('adding items sets array.length', () {
         final vals = [vm.newNumber(0), vm.newNumber(1), vm.newString('cow')];
         final array = vm.newArray();
         for (int i = 0; i < vals.length; i++) {
-          vm.setProperty(array.value, i, vals[i].value);
+          vm.setProperty(array, i, vals[i]);
         }
 
-        final length = vm.getProperty(array.value, 'length');
-        expect(vm.getNumber(length.value), 3);
-
-        array.dispose();
-        vals.forEach((val) => val.dispose());
-      });
-    });
-
-    group('.unwrapResult', () {
-      test('successful result: returns the value', () {
-        final handle = vm.newString('OK!');
-        final VmCallResult<QuickJSHandle> result = VmCallResult.value(handle);
-
-        expect(vm.unwrapResult(result), handle);
-        handle.dispose();
-      });
-
-      test('error result: throws the error as a Javascript value', () {
-        final handle = vm.newString('ERROR!');
-        final VmCallResult<QuickJSHandle> result = VmCallResult.error(handle);
-
-        try {
-          vm.unwrapResult(result);
-          throw ('vm.unwrapResult(error) must throw');
-        } catch (error) {
-          expect(error, isA<JSError>());
-          expect((error as JSError).message, 'ERROR!');
-        }
+        final length = vm.getProperty(array, 'length');
+        expect(vm.getNumber(length), 3);
       });
     });
 
     group('.evalCode', () {
       test('on success: returns { value: success }', () {
-        final value = vm.unwrapResult(
-            vm.evalCode('''["this", "should", "work"].join(' ')'''));
-        expect(vm.getString(value.value), 'this should work');
-        value.dispose();
+        final value = vm.evalCode('''["this", "should", "work"].join(' ')''');
+        expect(vm.getString(value), 'this should work');
       });
 
       test('on failure: returns { error: exception }', () {
-        final result = vm.evalCode('''["this", "should", "fail].join(' ')''');
-        if (result.error == null) {
+        try {
+          vm.evalCode('''["this", "should", "fail].join(' ')''');
           throw ('result should be an error');
+        } on JSError catch(e) {
+          expect(e.toMap(), {
+            'name': 'SyntaxError',
+            'message': 'unexpected end of string',
+            'stack': '    at <eval.js>:1\n',
+          });
         }
-        expect(vm.dump(result.error!.value), {
-          'name': 'SyntaxError',
-          'message': 'unexpected end of string',
-          'stack': '    at <eval.js>:1\n',
-        });
-        result.error!.dispose();
       });
 
       test('runs in the global context', () {
-        vm
-            .unwrapResult(vm.evalCode("var declaredWithEval = 'Nice!'"))
-            .dispose();
+        vm.evalCode("var declaredWithEval = 'Nice!'");
         final declaredWithEval =
-            vm.getProperty(vm.global.value, 'declaredWithEval');
-        expect(vm.getString(declaredWithEval.value), 'Nice!');
-        declaredWithEval.dispose();
+            vm.getProperty(vm.global, 'declaredWithEval');
+        expect(vm.getString(declaredWithEval), 'Nice!');
       });
 
       test('can access assigned globals', () {
@@ -319,13 +241,11 @@ void main() {
         final fnHandle = vm.newFunction('nextId', (args, {thisObj}) {
           return vm.newNumber(++i);
         });
-        vm.setProperty(vm.global.value, 'nextId', fnHandle.value);
-        fnHandle.dispose();
+        vm.setProperty(vm.global, 'nextId', fnHandle);
 
-        final nextId =
-            vm.unwrapResult(vm.evalCode('nextId(); nextId(); nextId()'));
+        final nextId = vm.evalCode('nextId(); nextId(); nextId()');
         expect(i, 3);
-        expect(vm.getNumber(nextId.value), 3);
+        expect(vm.getNumber(nextId), 3);
       });
     });
 
@@ -335,15 +255,13 @@ void main() {
         final fnHandle = vm.newFunction('nextId', (args, {thisObj}) {
           return vm.newNumber(++i);
         });
-        vm.setProperty(vm.global.value, 'nextId', fnHandle.value);
-        fnHandle.dispose();
+        vm.setProperty(vm.global, 'nextId', fnHandle);
 
-        final result = vm.unwrapResult(vm.evalCode(
-            '(new Promise(resolve => resolve())).then(nextId).then(nextId).then(nextId);1'));
+        final result = vm.evalCode('(new Promise(resolve => resolve())).then(nextId).then(nextId).then(nextId);1');
         expect(i, 0);
         vm.executePendingJobs();
         expect(i, 3);
-        expect(vm.getNumber(result.value), 1);
+        expect(vm.getNumber(result), 1);
       });
     });
 
@@ -353,17 +271,13 @@ void main() {
         final fnHandle = vm.newFunction('nextId', (args, {thisObj}) {
           return vm.newNumber(++i);
         });
-        vm.setProperty(vm.global.value, 'nextId', fnHandle.value);
-        fnHandle.dispose();
+        vm.setProperty(vm.global, 'nextId', fnHandle);
 
-        vm
-            .unwrapResult(vm.evalCode(
-                '(new Promise(resolve => resolve(5)).then(nextId));1'))
-            .dispose();
+        vm.evalCode('(new Promise(resolve => resolve(5)).then(nextId));1');
         expect(vm.hasPendingJob(), true,
             reason: 'has a pending job after creating a promise');
 
-        final executed = vm.unwrapResult(vm.executePendingJobs());
+        final executed = vm.executePendingJobs();
         expect(executed, 1, reason: 'executed exactly 1 job');
 
         expect(vm.hasPendingJob(), false,
@@ -376,9 +290,8 @@ void main() {
         final json = jsonEncode(val);
         final nativeType = jsTypeof(val);
         test('supports ${nativeType} (${json})', () {
-          final handle = vm.unwrapResult(vm.evalCode('(${json})'));
-          expect(vm.dump(handle.value), val);
-          handle.dispose();
+          final handle = vm.evalCode('(${json})');
+          expect(vm.dump(handle), val);
         });
       }
 
@@ -397,9 +310,8 @@ void main() {
         final json = toCode(val);
         final nativeType = jsTypeof(val);
         test('supports ${nativeType} (${json})', () {
-          final handle = vm.unwrapResult(vm.evalCode('(${json})'));
-          expect(vm.typeof(handle.value), nativeType);
-          handle.dispose();
+          final handle = vm.evalCode('(${json})');
+          expect(vm.typeof(handle), nativeType);
         });
       }
 
@@ -429,7 +341,7 @@ void main() {
         };
         vm.setInterruptHandler(interruptHandler);
 
-        vm.unwrapResult(vm.evalCode('1 + 1')).dispose();
+        vm.evalCode('1 + 1');
 
         expect(calls > 0, isTrue,
             reason: 'interruptHandler called at least once');
@@ -446,26 +358,18 @@ void main() {
         };
         vm.setInterruptHandler(interruptHandler);
 
-        final result = vm.evalCode('i = 0; while (1) { i++ }');
+        try {
+          vm.evalCode('i = 0; while (1) { i++ }');
 
-// Make sure we actually got to interrupt the loop.
-        final iHandle = vm.getProperty(vm.global.value, 'i');
-        final i = vm.getNumber(iHandle.value)!;
-        iHandle.dispose();
-
-        expect(i > 10, isTrue, reason: 'incremented i');
-        expect(i > calls, isTrue,
-            reason: 'incremented i more than called the interrupt handler');
-// console.log('Javascript loop iterrations:', i, 'interrupt handler calls:', calls);
-
-        if (result.error != null) {
-          final errorJson = vm.dump(result.error!.value);
-          result.error!.dispose();
-          expect(errorJson['name'], 'InternalError');
-          expect(errorJson['message'], 'interrupted');
-        } else {
-          result.value!.dispose();
+          // Make sure we actually got to interrupt the loop.
+          final iHandle = vm.getProperty(vm.global, 'i');
+          final i = vm.getNumber(iHandle)!;
+          expect(i > 10, isTrue, reason: 'incremented i');
+          expect(i > calls, isTrue, reason: 'incremented i more than called the interrupt handler');
+          // console.log('Javascript loop iterrations:', i, 'interrupt handler calls:', calls);
           throw ('Should have returned an interrupt error');
+        } on JSError catch(e) {
+          expect(e.toMap(), allOf(containsPair('name', 'InternalError'), containsPair('message', 'interrupted')));
         }
       });
     });
@@ -473,8 +377,7 @@ void main() {
     group('.computeMemoryUsage', () {
       test('returns an object with JSON memory usage info', () {
         final result = vm.computeMemoryUsage();
-        final resultObj = vm.dump(result.value);
-        result.dispose();
+        final resultObj = vm.dump(result);
 
         final example = {
           'array_count': 1,
@@ -512,28 +415,19 @@ void main() {
     group('.setMemoryLimit', () {
       test('sets an enforced limit', () {
         vm.setMemoryLimit(100);
-        final result = vm.evalCode('new Uint8Array(101); "ok"');
-
-        if (result.error == null) {
-          result.value!.dispose();
+        try {
+          vm.evalCode('new Uint8Array(101); "ok"');
           throw ('should be an error');
+        } on JSError catch(e) {
+          print('An expected error: ${e.message}');
         }
-
-        vm.setMemoryLimit(-1); // so we can dump
-        final error = vm.dump(result.error!.value);
-        result.error!.dispose();
-
-        expect(error, null);
       });
 
       test('removes limit when set to -1', () {
         vm.setMemoryLimit(100);
         vm.setMemoryLimit(-1);
-
-        final result =
-            vm.unwrapResult(vm.evalCode('new Uint8Array(101); "ok"'));
-        final value = vm.dump(result.value);
-        result.dispose();
+        final result = vm.evalCode('new Uint8Array(101); "ok"');
+        final value = vm.dump(result);
         expect(value, 'ok');
       });
     });
@@ -560,19 +454,18 @@ void main() {
 
         final asyncFuncHandle = vm.newFunction('getThingy', (args, {thisObj}) {
           deferred = vm.newPromise();
-          timeout(5).then((_) => vm
-              .newNumber(expectedValue)
-              .consume((val) => deferred!.resolve(val.value)));
-          return deferred!.promise;
+          timeout(5).then((_) => vm.consumeAndFree(vm
+              .newNumber(expectedValue), (val) => deferred!.resolve(val)));
+          return deferred!.promise.value;
         });
 
-        asyncFuncHandle.consume(
-            (func) => vm.setProperty(vm.global.value, 'getThingy', func.value));
+        vm.consumeAndFree(asyncFuncHandle,
+            (func) => vm.setProperty(vm.global, 'getThingy', func));
 
-        vm.unwrapResult(vm.evalCode('''
+        vm.evalCode('''
   var globalThingy = 'not set by promise';
   getThingy().then(thingy => { globalThingy = thingy });
-  ''')).dispose();
+  ''');
 
 // Wait for the promise to settle
         await deferred!.settled;
@@ -582,8 +475,7 @@ void main() {
 
 // Check that the promise executed.
         final vmValue = vm
-            .unwrapResult(vm.evalCode('globalThingy'))
-            .consume((x) => vm.dump(x.value));
+            .consumeAndFree(vm.evalCode('globalThingy'), (x) => vm.dump(x));
         expect(vmValue, expectedValue);
       });
     });
@@ -593,8 +485,7 @@ void main() {
         final jsonString = File(
                 '${Directory.current.path}/test/json-generator-dot-com-1024-rows.json')
             .readAsStringSync();
-        final stringHandle = vm.newString(jsonString);
-        stringHandle.dispose();
+        vm.newString(jsonString);
       });
     });
   });

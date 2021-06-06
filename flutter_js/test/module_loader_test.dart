@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter_js/javascriptcore/vm.dart';
-import 'package:flutter_js/lifetime.dart';
 import 'package:flutter_js/quickjs/vm.dart';
 import 'package:flutter_js/quickjs/qjs_ffi.dart';
 import 'package:test/test.dart';
@@ -16,21 +15,22 @@ void main() {
       vm.dispose();
     });
     test('QuickJS module_loader simple', () async {
-      StaticLifetime<JSValuePointer>? cache;
+      JSValuePointer? cache;
       vm.registerModule('greeting', (_vm) {
         QuickJSVm vm = _vm as QuickJSVm;
-        // `newFunction` registered its return value to the Vm scope.
-        // Wrap the `require`d result in a `StaticLifetime` to prevent disposed by subsequence function call.
-        return cache = cache ?? StaticLifetime(vm.newFunction(null, (args, {thisObj}) {
-          return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
-        }).value);
+        if(cache == null) {
+          cache = vm.newFunction(null, (args, {thisObj}) {
+            return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
+          });
+        }
+        return vm.copyJSValue(cache!);
       });
-      var actual = vm.evalUnsafe('''
+      var actual = vm.evalAndConsume('''
       var greeting = require("greeting");
       var greeting = require("greeting");
       var greeting = require("greeting");
       greeting("Flutter");
-      ''').consume((lifetime) => vm.jsToDart(lifetime.value));
+      ''', (_) => vm.jsToDart(_));
       expect(actual, 'Hello Flutter!');
       print(actual);
     });
@@ -38,12 +38,14 @@ void main() {
       vm.registerModule('async_greeting', (_vm) {
         QuickJSVm vm = _vm as QuickJSVm;
         return vm.newPromise(Future.delayed(Duration(seconds: 2), () => vm.newFunction(null, (args, {thisObj}) {
+          print('async greeting called.');
           return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
-        }))).promise;
+        }))).promise.value;
       });
-      var actual = vm.evalUnsafe('''
+      final result = vm.evalCode('''
       require("async_greeting").then(greeting => greeting("Flutter"));
-      ''').consume((lifetime) => vm.jsToDart(lifetime.value));
+      ''');
+      var actual = vm.jsToDart(result);
       Future.delayed(Duration(seconds: 3), () => vm.executePendingJobs());
       final actualStr = await Future.value(actual);
       expect(actualStr, 'Hello Flutter!');
@@ -59,12 +61,12 @@ void main() {
       vm.dispose();
     });
     test('JavaScriptCore module_loader simple', () async {
-      StaticLifetime<JSValuePointer>? cache;
+      JSValuePointer? cache;
       vm.registerModule('greeting', (_vm) {
         JavaScriptCoreVm vm = _vm as JavaScriptCoreVm;
-        return cache = cache ?? StaticLifetime(vm.newFunction(null, (args, {thisObj}) {
+        return cache = cache ?? vm.newFunction(null, (args, {thisObj}) {
           return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
-        }));
+        });
       });
       final actual = vm.jsToDart(vm.evalCode('''
       var greeting = require("greeting");
@@ -73,19 +75,21 @@ void main() {
       greeting("Flutter");
       '''));
       expect(actual, 'Hello Flutter!');
+      print(actual);
     });
     test('JavaScriptCore module_loader async', () async {
       vm.registerModule('async_greeting', (_vm) {
         JavaScriptCoreVm vm = _vm as JavaScriptCoreVm;
         return vm.newPromise(Future.delayed(Duration(seconds: 2), () => vm.newFunction(null, (args, {thisObj}) {
           return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
-        }))).promise;
+        }))).promise.value;
       });
       var actual = vm.jsToDart(vm.evalCode('''
       require("async_greeting").then(greeting => greeting("Flutter"));
       '''));
       final actualStr = await Future.value(actual);
       expect(actualStr, 'Hello Flutter!');
+      print(actualStr);
     });
   });
 }

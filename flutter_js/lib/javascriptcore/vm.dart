@@ -16,7 +16,6 @@ import './binding/js_value_ref.dart';
 import './binding/js_typed_array.dart';
 import 'binding/jsc_types.dart';
 export 'binding/jsc_types.dart' show JSValueRef;
-export '../types.dart' show DART_UNDEFINED, JSToDartFunction;
 
 typedef bytes_deallocator = Void Function(
     JSValueRef, JSContextRef);
@@ -310,7 +309,7 @@ return 0
       if(!_moduleMap.containsKey(moduleName)) {
         return $undefined;
       }
-      return _moduleMap[moduleName]!(this).value;
+      return _moduleMap[moduleName]!(this);
     });
     setProperty(global, 'require', fn);
   }

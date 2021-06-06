@@ -19,26 +19,24 @@ void main() {
     });
     test('toString', () {
       final ptr = vm.newNumber(1024);
-      final actual = JS_GetString(vm.ctx, ptr.value).toDartString();
-      ptr.dispose();
+      final actual = JS_GetString(vm.ctx, ptr).toDartString();
       expect(actual, '1024');
     });
     test('newString', () {
       String expected = "Hello World!";
       final ptr = vm.newString(expected);
-      final actual = JS_GetString(vm.ctx, ptr.value).toDartString();
+      final actual = JS_GetString(vm.ctx, ptr).toDartString();
       // JS_FreeValuePointer(vm.ctx, ptr.value);
-      ptr.dispose();
       expect(actual, expected);
     });
     test('newError', () {
       final error = JSError('A test message.')..name = 'DARTJSError';
       final ptr = vm.newError(error);
-      final errorPtr = JS_ResolveException(vm.ctx, ptr.value);
+      final err = JS_Throw(vm.ctx, ptr);
+      final errorPtr = JS_ResolveException(vm.ctx, err);
       try {
         expect(errorPtr, isNot(nullptr));
       } finally {
-        ptr.dispose();
         // JS_FreeValuePointer(vm.ctx, ptr);
         JS_FreeValuePointer(vm.ctx, errorPtr);
       }
@@ -49,21 +47,17 @@ void main() {
       final utf8str = 'byteLength'.toNativeUtf8();
       final lengthStr = JS_NewString(vm.ctx, utf8str);
       malloc.free(utf8str);
-      final lengthPtr = JS_GetProp(vm.ctx, handle.value, lengthStr.cast<JSValueConstOpaque>());
+      final lengthPtr = JS_GetProp(vm.ctx, handle, lengthStr.cast<JSValueConstOpaque>());
       JS_FreeValuePointer(vm.ctx, lengthStr);
       int length = JS_GetFloat64(vm.ctx, lengthPtr).toInt();
       expect(length, expected.length);
       final psize = malloc<IntPtr>();
-      final buff = JS_GetArrayBuffer(vm.ctx, psize, handle.value);
+      final buff = JS_GetArrayBuffer(vm.ctx, psize, handle);
       Uint8List actual = Uint8List.fromList(buff.asTypedList(psize.value));
       malloc.free(psize);
       print(expected);
       print(actual);
-      try {
-        expect(actual, expected);
-      } finally {
-        handle.dispose();
-      }
+      expect(actual, expected);
     });
     test('newArrayBuffer_NoCopy', () {
       List<int> data = utf8.encode('Hello World!');
@@ -110,10 +104,10 @@ void main() {
     });
     test('module_loader', () {
       JS_SetModuleLoaderFunc(vm.rt, Pointer.fromFunction(moduleLoader, 0));
-      final actual = vm.evalUnsafe(r'''import { hello } from "greeting";
-      console.log(hello("Flutter"))''').consume((lifetime) => vm.jsToDart(lifetime.value));
+      final actual = vm.evalAndConsume(r'''import { hello } from "greeting";
+      console.log(hello("Flutter"))''', (_) => vm.jsToDart(_));
       expect(actual, 'Hello Flutter!');
-    });
+    }, skip: 'need to set eval flag to JS_EVAL_TYPE_MODULE to support `import` syntax');
   });
 }
 int moduleLoader(JSContextPointer ctx, Pointer<Pointer<Utf8>> buffPointer, Pointer<IntPtr> lenPointer, Pointer<Utf8> module_name) {

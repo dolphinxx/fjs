@@ -16,6 +16,14 @@ class JSError extends Error{
   String toString() {
     return '${name??"JSError"}: $message\n$stackTrace';
   }
+
+  Map<String, String> toMap() {
+    return {
+      if(name != null) 'name': name!,
+      'message': message,
+      'stack': stackTrace.toString(),
+    };
+  }
 }
 
 class DisposeError extends Error {
