@@ -150,12 +150,14 @@ void main() {
 
     group('objects', () {
       test('can set and get properties by native string', () {
-        final object = vm.newObject();
+        final object = vm.newObject({'ov': 'should be overwritten'});
         final value = vm.newNumber(42);
-        final nameHandle = vm.newString('propName');
-        vm.setProp(object, nameHandle, value);
-        final value2 = vm.getProp(object, nameHandle);
-        expect(vm.getNumber(value2), 42);
+        final nameRef = vm.newString('propName');
+        final ovRef = vm.newString('ov');
+        vm.setProp(object, nameRef, value);
+        vm.setProp(object, ovRef, vm.newString('Greeting!'));
+        expect(vm.getNumber(vm.getProp(object, nameRef)), 42);
+        expect(vm.getString(vm.getProp(object, ovRef)), 'Greeting!');
       });
 
       test('can set and get properties by handle string', () {

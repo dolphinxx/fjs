@@ -108,5 +108,22 @@ void main() {
       expect(vm.hasProperty(obj, 'a'), isTrue);
       expect(vm.hasProperty(obj, 'b'), isFalse);
     });
+    test('set prop to args', () {
+      final fn = vm.newFunction(null, (args, {thisObj}) {
+        vm.setProperty(args[0], 'msg', vm.dartToJS('Hello World!'));
+        vm.setProperty(args[0], 'ov', vm.dartToJS('Greeting!'));
+      });
+      var obj = vm.newObject({'ov': 'should be overwritten'});
+      vm.callVoidFunction(fn, null, [obj]);
+      expect(vm.jsToDart(vm.getProperty(obj, 'msg')), 'Hello World!');
+      expect(vm.jsToDart(vm.getProperty(obj, 'ov')), 'Greeting!');
+
+      obj = vm.newObject({'ov': 'should be overwritten'});
+      vm.setProperty(vm.global, 'fn', fn);
+      vm.setProperty(vm.global, 'obj', obj);
+      vm.evalCode('fn(obj)');
+      expect(vm.jsToDart(vm.getProperty(obj, 'msg')), 'Hello World!');
+      expect(vm.jsToDart(vm.getProperty(obj, 'ov')), 'Greeting!');
+    });
   });
 }
