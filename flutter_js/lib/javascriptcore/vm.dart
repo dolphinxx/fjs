@@ -460,7 +460,7 @@ return 0
     final fnId = ++_fnNextId;
     _fnMap[fnId] = fn;
     JSStringRef nameRef = name == null ? nullptr : newStringRef(name);
-    JSStringRef bodyRef = newStringRef('return \$\$jsc_cToHostFunction($fnId,...arguments)');
+    JSStringRef bodyRef = newStringRef('return \$\$jsc_cToHostFunction.apply(this, [$fnId,...arguments])');
     return runWithExceptionHandle((exception) => jSObjectMakeFunction(ctx, nameRef, 0, nullptr, bodyRef, nullptr, 0, exception));
   }
 
