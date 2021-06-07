@@ -98,5 +98,15 @@ void main() {
       print(actual);
       expect(actual, expected);
     });
+    test('hasProp created by JS', () {
+      final obj = vm.evalCode('({a: 1024})');
+      expect(vm.hasProperty(obj, 'a'), isTrue);
+      expect(vm.hasProperty(obj, 'b'), isFalse);
+    });
+    test('hasProp created by Dart', () {
+      final obj = vm.newObject({'a': 1024});
+      expect(vm.hasProperty(obj, 'a'), isTrue);
+      expect(vm.hasProperty(obj, 'b'), isFalse);
+    });
   });
 }

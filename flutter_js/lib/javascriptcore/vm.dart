@@ -475,7 +475,7 @@ return 0
   }
 
   /// [key] is one of String, num or JSValueRef
-  void setProperty(JSValuePointer obj, dynamic key, JSValuePointer value) {
+  void setProperty(JSValueRef obj, dynamic key, JSValueRef value) {
     if(key is String) {
       setProp(obj, newString(key), value);
       return;
@@ -490,12 +490,12 @@ return 0
     setProp(obj, key, value);
   }
 
-  JSValueRef getProp(JSValuePointer obj, JSValueRef key) {
+  JSValueRef getProp(JSValueRef obj, JSValueRef key) {
     return runWithExceptionHandle((exception) => jSObjectGetPropertyForKey(ctx, obj, key, exception));
   }
 
   /// [key] is one of String, num or JSValuePointer
-  JSValueRef getProperty(JSValuePointer obj, dynamic key) {
+  JSValueRef getProperty(JSValueRef obj, dynamic key) {
     if(key is String) {
       return getProp(obj, newString(key));
     }
@@ -506,6 +506,23 @@ return 0
       throw JSError('Wrong type for key: ${key.runtimeType}');
     }
     return getProp(obj, key);
+  }
+
+  bool hasProp(JSValueRef obj, JSValueRef key) {
+    return runWithExceptionHandle((exception) => jSObjectHasPropertyForKey(ctx, obj, key, exception) == 1);
+  }
+
+  bool hasProperty(JSValueRef obj, dynamic key) {
+    if(key is String) {
+      return hasProp(obj, newString(key));
+    }
+    if(key is num) {
+      return hasProp(obj, newNumber(key));
+    }
+    if(!(key is JSValuePointer)) {
+      throw JSError('Wrong type for key: ${key.runtimeType}');
+    }
+    return hasProp(obj, key);
   }
 
   JSValueRef callFunction(JSObjectRef func,

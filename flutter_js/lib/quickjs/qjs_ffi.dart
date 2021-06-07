@@ -421,6 +421,18 @@ final JS_GetProperty = dylib.lookupFunction<
   JSValuePointer Function(JSContextPointer, JSValueConstPointer, int)
 >('QJS_GetProperty');
 
+/// int QJS_HasProp(JSContext* ctx, JSValueConst* this_obj, JSValueConst *prop_name)
+final JS_HasProp = dylib.lookupFunction<
+  Int8 Function(JSContextPointer, JSValueConstPointer, JSValueConstPointer),
+  int Function(JSContextPointer ctx, JSValueConstPointer this_obj, JSValueConstPointer prop)
+>('QJS_HasProp');
+
+/// int QJS_HasProperty(JSContext* ctx, JSValueConst *this_obj, JSAtom prop)
+final JS_HasProperty = dylib.lookupFunction<
+  Int8 Function(JSContextPointer, JSValueConstPointer, JSAtom),
+  int Function(JSContextPointer ctx, JSValueConstPointer this_obj, int prop)
+>('QJS_HasProperty');
+
 abstract class JSHandyType {
   static const String js_unknown = 'unknown';
   static const String js_uninitialized = 'uninitialized';

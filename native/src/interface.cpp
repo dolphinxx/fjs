@@ -583,6 +583,17 @@ void QJS_TestStringArg(const char *string) {
     return jsvalue_to_heap(JS_GetPropertyInternal(ctx, *this_obj, prop, *this_obj, 0));
   }
 
+  int QJS_HasProp(JSContext* ctx, JSValueConst* this_obj, JSValueConst *prop_name) {
+      JSAtom prop_atom = JS_ValueToAtom(ctx, *prop_name);
+      int result = JS_HasProperty(ctx, *this_obj, prop_atom);
+      JS_FreeAtom(ctx, prop_atom);
+      return result;
+  }
+
+  int QJS_HasProperty(JSContext* ctx, JSValueConst *this_obj, JSAtom prop) {
+      return JS_HasProperty(ctx, *this_obj, prop);
+  }
+
   // copied from quickjs.c
   typedef enum {
       /* classid tag        */    /* union usage   | properties */

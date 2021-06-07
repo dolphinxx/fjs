@@ -516,6 +516,23 @@ class QuickJSVm extends Vm implements Disposable {
     return getProp(obj, key);
   }
 
+  bool hasProp(JSValuePointer obj, JSValueConstPointer key) {
+    return JS_HasProp(ctx, obj, key) == 1;
+  }
+
+  bool hasProperty(JSValuePointer obj, dynamic key) {
+    if(key is String) {
+      return consumeAndFree(newString(key), (k) => hasProp(obj, k));
+    }
+    if(key is num) {
+      return consumeAndFree(newNumber(key), (k) => hasProp(obj, k));
+    }
+    if(!(key is JSValuePointer)) {
+      throw JSError('Wrong type for key: ${key.runtimeType}');
+    }
+    return hasProp(obj, key);
+  }
+
   /**
    * [`Object.defineProperty(handle, key, descriptor)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty).
    *

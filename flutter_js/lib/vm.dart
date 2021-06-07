@@ -134,6 +134,10 @@ abstract class Vm {
   /// **Note:** only `num`, `String` or JSValuePointer is acceptable for [key].
   JSValuePointer getProperty(JSValuePointer obj, dynamic key);
 
+  bool hasProp(JSValuePointer obj, JSValueConstPointer key);
+
+  bool hasProperty(JSValuePointer obj, dynamic key);
+
   /// [`func.call(thisVal, ...args)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/call).
   ///
   /// Call a JSValue as a function.

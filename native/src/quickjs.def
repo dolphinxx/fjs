@@ -33,6 +33,8 @@ EXPORTS
    QJS_GetProp
    QJS_SetProp
    QJS_DefineProp
+   QJS_HasProp
+   QJS_HasProperty
    QJS_Call
    QJS_CallVoid
    QJS_CallConstructor

@@ -98,6 +98,16 @@ void main() {
         JS_FreeValuePointer(vm.ctx, fnRef);
       }
     });
+    test('hasProp created by JS', () {
+      final obj = vm.evalCode('({a: 1024})');
+      expect(vm.hasProperty(obj, 'a'), isTrue);
+      expect(vm.hasProperty(obj, 'b'), isFalse);
+    });
+    test('hasProp created by Dart', () {
+      final obj = vm.newObject({'a': 1024});
+      expect(vm.hasProperty(obj, 'a'), isTrue);
+      expect(vm.hasProperty(obj, 'b'), isFalse);
+    });
     test('module_loader', () {
       JS_SetModuleLoaderFunc(vm.rt, Pointer.fromFunction(moduleLoader, 0));
       final actual = vm.evalAndConsume(r'''import { hello } from "greeting";
