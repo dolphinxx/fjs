@@ -1,0 +1,21 @@
+name: flutter_js_module_http
+description: A module for the flutter_js plugin to bring native http api to JS.
+homepage: https://github.com/dolphinxx/flutter_js/modules/flutter_js_module_http
+
+version: 0.1.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_js:
+    path: ../../flutter_js
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  pedantic: ^1.10.0
+
+environment:
+  sdk: ">=2.13.0 <3.0.0"
+  flutter: ">=1.10.0"
+  
