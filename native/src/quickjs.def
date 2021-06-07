@@ -35,6 +35,8 @@ EXPORTS
    QJS_DefineProp
    QJS_Call
    QJS_CallVoid
+   QJS_CallConstructor
+   QJS_ToConstructor
    QJS_ResolveException
    QJS_Dump
    QJS_Eval

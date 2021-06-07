@@ -489,6 +489,18 @@ final JS_NewDate = dylib.lookupFunction<
   JSValuePointer Function(JSContextPointer ctx, int timestamp)
 >('QJS_NewDate');
 
+/// void QJS_ToConstructor(JSContext* ctx, JSValueConst *func_obj)
+final JS_ToConstructor = dylib.lookupFunction<
+  Void Function(JSContextPointer, JSValuePointer),
+  void Function(JSContextPointer, JSValuePointer)
+>('QJS_ToConstructor');
+
+/// JSValue* QJS_CallConstructor(JSContext* ctx, JSValueConst *func_obj, int argc, JSValueConst** argv_ptrs)
+final JS_CallConstructor = dylib.lookupFunction<
+  JSValuePointer Function(JSContextPointer, JSValuePointer, Int32, JSValuePointerPointer),
+  JSValuePointer Function(JSContextPointer ctx, JSValuePointer func_obj, int argc, JSValuePointerPointer argv_ptrs)
+>('QJS_CallConstructor');
+
 /// Get the pending exception.
 ///
 /// Call it only when you pretty sure there is an exception.

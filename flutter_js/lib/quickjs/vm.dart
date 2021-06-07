@@ -450,6 +450,19 @@ class QuickJSVm extends Vm implements Disposable {
     return funcHandle;
   }
 
+  JSValuePointer newConstructor(JSToDartFunction fn) {
+    JSValuePointer c = newFunction(null, fn);
+    JS_ToConstructor(ctx, c);
+    return c;
+  }
+
+  /// Mark a JS [function] as a constructor so that it can be called via `new func()`
+  ///
+  /// It is required by QuickJS.
+  void toConstructor(JSValuePointer func) {
+    JS_ToConstructor(ctx, func);
+  }
+
   /**
    * `handle[key] = value`.
    * Set a property on a JSValue.
@@ -588,6 +601,29 @@ class QuickJSVm extends Vm implements Disposable {
       [JSValuePointer? thisVal,
         List<JSValuePointer>? args]) {
     _freeJSValue(callFunction(func, thisVal, args));
+  }
+
+  JSValuePointer callConstructor(JSValuePointer constructor, [List<JSValuePointer>? args]) {
+    Lifetime<JSValueConstPointerPointer>? argv;
+    int argc;
+    if(args?.isNotEmpty != true) {
+      argc = 0;
+    } else {
+      argc = args!.length;
+      argv = _toPointerArray(args);
+    }
+    final resultPtr;
+    try {
+      resultPtr = JS_CallConstructor(ctx, constructor, argc, argv?.value??nullptr);
+    } finally {
+      argv?.dispose();
+    }
+
+    JSError? error = resolveError(resultPtr);
+    if(error != null) {
+      throw error;
+    }
+    return _heapValueHandle(resultPtr);
   }
 
   /**
@@ -1068,8 +1104,10 @@ class QuickJSVm extends Vm implements Disposable {
   }
 
   /// increase ref_count
-  JSValuePointer copyJSValue(
-      JSValuePointer/* | JSValueConstPointer*/ ptr) {
+  ///
+  /// When you want to pass a JSValue(which came from JS) back to JS, you need to duplicate its reference.
+  JSValuePointer dupRef(
+      JSValuePointer ptr) {
     return _heapValueHandle(JS_DupValuePointer(ctx, ptr));
   }
 

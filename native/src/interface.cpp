@@ -739,6 +739,21 @@ void QJS_TestStringArg(const char *string) {
       return jsvalue_to_heap(result);
   }
 
+  JSValue* QJS_CallConstructor(JSContext* ctx, JSValueConst *func_obj,
+      int argc, JSValueConst** argv_ptrs) {
+      // convert array of pointers to array of values
+      JSValueConst* argv = new JSValueConst[argc];
+      int i;
+      for (i = 0; i < argc; i++) {
+          argv[i] = *(argv_ptrs[i]);
+      }
+      return jsvalue_to_heap(JS_CallConstructor(ctx, *func_obj, argc, argv));
+  }
+
+  void QJS_ToConstructor(JSContext* ctx, JSValueConst *func_obj) {
+      JS_SetConstructorBit(ctx, *func_obj, 1);
+  }
+
   JSValue* QJS_GetException(JSContext *ctx) {
     return jsvalue_to_heap(JS_GetException(ctx));
   }

@@ -322,6 +322,28 @@ extern "C"
         JS_SetPropertyStr(ctx, global, "print", JS_NewCFunction(ctx, &js_print, fnName, 1));
         JS_FreeValue(ctx, global);
     }
+
+    JSValue js_constructor(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+        JSValue result = JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx, result, "name", JS_DupValue(ctx, argv[0]));
+        return result;
+    }
+    void test_CallConstructor(JSContext* ctx) {
+        const char* fnName = "c";
+        //JSValue constructor = JS_NewCFunction2(ctx, &js_constructor, fnName, 0, JS_CFUNC_constructor_or_func, 0);
+        JSValue constructor = JS_NewCFunction(ctx, &js_constructor, fnName, 0);
+        JS_SetConstructorBit(ctx, constructor, 1);
+        JSValue* argv = (JSValue*)malloc(sizeof(JSValue));
+        JSValue arg = JS_NewString(ctx, "Flutter");
+        argv[0] = arg;
+        JSValue result = JS_CallConstructor(ctx, constructor, 1, argv);
+        printStringify(ctx, result);
+        JS_FreeValue(ctx, arg);
+        free(argv);
+        JS_FreeValue(ctx, constructor);
+        JS_FreeValue(ctx, result);
+    }
+
   int main()
   {
       //hello_world();
@@ -338,8 +360,8 @@ extern "C"
       setup_js_print(ctx);
       
       
-
-      test_ModuleLoader(rt, ctx);
+      test_CallConstructor(ctx);
+      //test_ModuleLoader(rt, ctx);
       //test_NewDate(ctx);
       //test_NewArrayBuffer(ctx);
       //testHandyTypeof(ctx);

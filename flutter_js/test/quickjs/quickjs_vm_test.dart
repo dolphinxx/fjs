@@ -119,7 +119,7 @@ void main() {
         JSValuePointer? value;
 
         final fnHandle = vm.newFunction('doSomething', (args, {thisObj}) {
-          value = vm.copyJSValue(args.first);
+          value = vm.dupRef(args.first);
         });
 
         final argHandle = vm.newString('something');

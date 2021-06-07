@@ -17,7 +17,7 @@ class GreetingModule extends FlutterJSModule {
           return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
         });
       }
-      return vm.copyJSValue(cache!);
+      return vm.dupRef(cache!);
     }
     if(vm is JavaScriptCoreVm) {
       return cache = cache ?? vm.newFunction(null, (args, {thisObj}) {

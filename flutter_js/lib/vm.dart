@@ -104,13 +104,18 @@ abstract class Vm {
   /// You can still use your own `Future` to handle `Promise`.
   JSDeferredPromise newPromise([Future? future]);
 
-  /// Convert a Dart [function] into a QuickJS function value.
+  /// Convert a Dart [function] into a JS [Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function) value.
   ///
   /// [name] is only used to set the [name](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/name) of the created function.
   /// You will still need to set the function as a property of an object(eg: the globalThis) to be able to call it in JS.
   ///
   /// See [[JSToDartFunction]] for more details.
   JSValuePointer newFunction(String? name, JSToDartFunction function);
+
+  /// Convert a Dart [function] into a JS constructor value.
+  ///
+  /// It is still a [Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function), but can be called via `new xx()`.
+  JSValuePointer newConstructor(JSToDartFunction function);
 
   /// Set a property on a JSValue.
   void setProp(
@@ -143,6 +148,9 @@ abstract class Vm {
   void callVoidFunction(JSValuePointer func,
       [JSValuePointer? thisVal, List<JSValuePointer>? args]);
 
+  /// Call a JS function as constructor
+  JSValuePointer callConstructor(JSValuePointer constructor, [List<JSValuePointer>? args]);
+
   /// Like [`eval(code)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval#Description).
   ///
   /// Evaluates the Javascript source `code` in the global scope of this VM.
@@ -163,6 +171,21 @@ abstract class Vm {
   ///
   /// [value] must be able to be serialize to JSON through `jsonEncode` if it is not one of the supported types.
   JSValuePointer dartToJS(dynamic value);
+
+  /// Call this function when you try to return to JS a JSValue that was not created by you.
+  ///
+  /// It is required by QuickJS. For JavaScriptCore, the function just return the [value].
+  ///
+  /// See the sample bellow:
+  /// ```dart
+  /// vm.newFunction('foo', (args, {thisObj}) {
+  ///   // here you need to call dupRef to args[0] since it is not created by you.
+  ///   return vm.dupRef(args[0]);
+  /// });
+  /// ```
+  JSValuePointer dupRef(JSValuePointer value) {
+    return value;
+  }
 
   /// Start an event loop to call `executePendingJobs` every [ms].
   ///

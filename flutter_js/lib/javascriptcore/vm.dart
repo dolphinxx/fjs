@@ -25,95 +25,6 @@ void _bytesDeallocator(JSValueRef bytes, JSContextRef context) {
   calloc.free(bytes);
 }
 
-// class JavaScriptCoreDeferredPromise implements Disposable {
-//   final JavaScriptCoreVm owner;
-//   final Lifetime<JSValuePointer> _promise;
-//   final Lifetime<JSValuePointer> _resolve;
-//   final Lifetime<JSValuePointer> _reject;
-//
-//   /**
-//    * A native promise that will resolve once this deferred is settled.
-//    */
-//   late Future<void> settled;
-//   late void Function() onSettled;
-//
-//   Lifetime<JSValuePointer> get promise => _promise;
-//
-//   JavaScriptCoreDeferredPromise(
-//       this.owner, this._promise, this._resolve, this._reject, [Future? future]) {
-//     if(future != null) {
-//       this.settled = future;
-//       this.onSettled = () {};
-//     } else {
-//       Completer completer = Completer();
-//       this.settled = completer.future;
-//       this.onSettled = () => completer.complete();
-//     }
-//   }
-//
-//   /**
-//    * Resolve [[resolve]] with the given value, if any.
-//    * Calling this method after calling [[dispose]] is a no-op.
-//    *
-//    * Note that after resolving a promise, you may need to call
-//    * [[executePendingJobs]] to propagate the result to the promise's
-//    * callbacks.
-//    */
-//   void resolve(JSValuePointer? value) {
-//     if (!_resolve.alive) {
-//       return;
-//     }
-//     owner.callFunction(
-//         this._resolve.value, owner.nullThis, [value ?? owner.$undefined]);
-//     // final JSValueRefArray args = owner.createValueRefArray([value??owner.$undefined]);
-//     // owner.runWithExceptionHandle((exception) => jSObjectCallAsFunction(owner.ctx, _resolve.value, nullptr, 1,
-//     //     args, exception), () => calloc.free(args));
-//     this._disposeResolvers();
-//     this.onSettled();
-//   }
-//
-//   /**
-//    * Reject [[reject]] with the given value, if any.
-//    * Calling this method after calling [[dispose]] is a no-op.
-//    *
-//    * Note that after rejecting a promise, you may need to call
-//    * [[executePendingJobs]] to propagate the result to the promise's
-//    * callbacks.
-//    */
-//   reject(JSValuePointer? value) {
-//     if (!_reject.alive) {
-//       return;
-//     }
-//     owner.callFunction(
-//         this._reject.value, owner.nullThis, [value ?? owner.$undefined]);
-//     // final JSValueRefArray args = owner.createValueRefArray([value??owner.$undefined]);
-//     // owner.runWithExceptionHandle((exception) => jSObjectCallAsFunction(owner.ctx, _reject.value, nullptr, 1,
-//     //     args, exception), () => calloc.free(args));
-//     this._disposeResolvers();
-//     this.onSettled();
-//   }
-//
-//   get alive {
-//     return _promise.alive || _resolve.alive || _reject.alive;
-//   }
-//
-//   dispose() {
-//     if (_promise.alive) {
-//       _promise.dispose();
-//     }
-//     this._disposeResolvers();
-//   }
-//
-//   _disposeResolvers() {
-//     if (_resolve.alive) {
-//       _resolve.dispose();
-//     }
-//     if (_reject.alive) {
-//       _reject.dispose();
-//     }
-//   }
-// }
-
 abstract class JSHandyType {
   static const int js_unknown = 0;
   static const int js_undefined = 1;
@@ -553,6 +464,11 @@ return 0
     return runWithExceptionHandle((exception) => jSObjectMakeFunction(ctx, nameRef, 0, nullptr, bodyRef, nullptr, 0, exception));
   }
 
+  /// In JavaScriptCore there is no difference between a generic function and a constructor.
+  JSObjectRef newConstructor(JSToDartFunction fn) {
+    return newFunction(null, fn);
+  }
+
   void setProp(
       JSValueRef obj, JSValueRef key, JSValueRef value) {
     runWithExceptionHandle((exception) => jSObjectSetPropertyForKey(ctx, obj, key, value, JSPropertyAttributes.kJSPropertyAttributeNone, exception));
@@ -615,6 +531,25 @@ return 0
   void callVoidFunction(JSObjectRef func,
       [JSObjectRef? thisVal, List<JSValueRef>? args]) {
     callFunction(func, thisVal, args);
+  }
+
+  JSValueRef callConstructor(JSObjectRef constructor,
+      [List<JSValueRef>? args]) {
+    JSValueRefArray? argv;
+    int argc;
+    if (args?.isNotEmpty != true) {
+      argc = 0;
+    } else {
+      argc = args!.length;
+      argv = createValueRefArray(args);
+    }
+    return runWithExceptionHandle(
+        (exception) => jSObjectCallAsConstructor(
+            ctx, constructor, argc, argv ?? nullptr, exception), () {
+      if (argv != null) {
+        calloc.free(argv);
+      }
+    });
   }
 
   JSValueRef evalCode(String code, {String? filename}) {
