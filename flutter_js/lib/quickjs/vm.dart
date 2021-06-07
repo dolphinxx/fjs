@@ -287,7 +287,7 @@ class QuickJSVm extends Vm implements Disposable {
     final ptr = JS_NewObject(ctx);
     if(value != null) {
       value.forEach((key, value) {
-        consumeAndFree(dartToJS(value), (_) => defineProperty(ptr, key, VmPropertyDescriptor(value: _)));
+        consumeAndFree(dartToJS(value), (_) => defineProperty(ptr, key, VmPropertyDescriptor(value: _, enumerable: true)));
       });
     }
     return _heapValueHandle(ptr);
@@ -297,7 +297,7 @@ class QuickJSVm extends Vm implements Disposable {
     final ptr = JS_NewObjectProto(ctx, prototype);
     if(value != null) {
       value.forEach((key, value) {
-        consumeAndFree(dartToJS(value), (_) => defineProperty(ptr, key, VmPropertyDescriptor(value: _)));
+        consumeAndFree(dartToJS(value), (_) => defineProperty(ptr, key, VmPropertyDescriptor(value: _, enumerable: true)));
       });
     }
     return _heapValueHandle(ptr);
@@ -372,7 +372,7 @@ class QuickJSVm extends Vm implements Disposable {
     }
     dynamic e = jsonDecode(str.toDartString());
     if (e is Map && e['message'] is String) {
-      JSError error = JSError(e['message'], e.containsKey('stack') ? StackTrace.fromString(e['stack']) : StackTrace.current);
+      JSError error = JSError(e['message'], e['stack'] == null ? StackTrace.current : StackTrace.fromString(e['stack']));
       if (e['name'] is String) {
         error.name = e['name'];
       }
