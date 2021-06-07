@@ -19,6 +19,7 @@ class VmPropertyDescriptor<VmHandle> {
   JSValuePointer? value;
   bool? configurable;
   bool? enumerable;
+  bool? writable;
   JSToDartFunction? get;
   JSToDartFunction? set;
 
@@ -26,6 +27,7 @@ class VmPropertyDescriptor<VmHandle> {
     this.value,
     this.configurable,
     this.enumerable,
+    this.writable,
     this.get,
     this.set,
   });
@@ -287,7 +289,7 @@ class QuickJSVm extends Vm implements Disposable {
     final ptr = JS_NewObject(ctx);
     if(value != null) {
       value.forEach((key, value) {
-        consumeAndFree(dartToJS(value), (_) => defineProperty(ptr, key, VmPropertyDescriptor(value: _, enumerable: true)));
+        consumeAndFree(dartToJS(value), (_) => defineProperty(ptr, key, VmPropertyDescriptor(value: _, enumerable: true, configurable: true, writable: true)));
       });
     }
     return _heapValueHandle(ptr);
@@ -297,7 +299,7 @@ class QuickJSVm extends Vm implements Disposable {
     final ptr = JS_NewObjectProto(ctx, prototype);
     if(value != null) {
       value.forEach((key, value) {
-        consumeAndFree(dartToJS(value), (_) => defineProperty(ptr, key, VmPropertyDescriptor(value: _, enumerable: true)));
+        consumeAndFree(dartToJS(value), (_) => defineProperty(ptr, key, VmPropertyDescriptor(value: _, enumerable: true, configurable: true, writable: true)));
       });
     }
     return _heapValueHandle(ptr);
@@ -546,6 +548,7 @@ class QuickJSVm extends Vm implements Disposable {
     final value = descriptor.value ?? $undefined;
     final configurable = descriptor.configurable == true ? 1 : 0;
     final enumerable = descriptor.enumerable == true ? 1 : 0;
+    final writable = descriptor.writable == true ? 1 : 0;
     final hasValue = descriptor.value != null ? 1 : 0;
     final get = descriptor.get != null
         ? newFunction('getter', descriptor.get!) : $undefined;
@@ -561,6 +564,7 @@ class QuickJSVm extends Vm implements Disposable {
       set,
       configurable,
       enumerable,
+      writable,
       hasValue,
     );
   }

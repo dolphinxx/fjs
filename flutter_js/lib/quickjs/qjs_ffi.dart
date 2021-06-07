@@ -255,18 +255,20 @@ final JS_SetProp = dylib.lookupFunction<
         JSValuePointer/* | JSValueConstPointer*/ prop_value)>(
     "QJS_SetProp");
 
+/// void QJS_DefineProp(JSContext *ctx, JSValueConst *this_val, JSValueConst *prop_name, JSValueConst *prop_value, JSValueConst *get, JSValueConst *set, bool configurable, bool enumerable, bool writable, bool has_value)
 final JS_DefineProp = dylib.lookupFunction<
     Void Function(JSContextPointer, Pointer, Pointer, Pointer, Pointer,
-        Pointer, Int32 configurable, Int32 enumerable, Int32 has_value),
+        Pointer, Int32 configurable, Int32 enumerable, Int32 writable, Int32 has_value),
     void Function(
         JSContextPointer ctx,
-        JSValuePointer/* | JSValueConstPointer*/ this_val,
-        /*JSValuePointer | */JSValueConstPointer prop_name,
-        JSValuePointer/* | JSValueConstPointer*/ prop_value,
-        JSValuePointer/* | JSValueConstPointer*/ get,
-        JSValuePointer/* | JSValueConstPointer*/ set,
+        JSValuePointer this_val,
+        JSValueConstPointer prop_name,
+        JSValuePointer prop_value,
+        JSValuePointer get,
+        JSValuePointer set,
         int configurable,
         int enumerable,
+        int writable,
         int has_value)>("QJS_DefineProp");
 
 /// JSValue *QJS_Call(JSContext *ctx, JSValueConst *func_obj, JSValueConst *this_obj, int argc, JSValueConst **argv_ptrs)
