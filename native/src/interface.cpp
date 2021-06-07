@@ -359,7 +359,7 @@ void QJS_SetProp(JSContext *ctx, JSValueConst *this_val, JSValueConst *prop_name
   JS_FreeAtom(ctx, prop_atom);
 }
 
-void QJS_DefineProp(JSContext *ctx, JSValueConst *this_val, JSValueConst *prop_name, JSValueConst *prop_value, JSValueConst *get, JSValueConst *set, bool configurable, bool enumerable, bool has_value) {
+void QJS_DefineProp(JSContext *ctx, JSValueConst *this_val, JSValueConst *prop_name, JSValueConst *prop_value, JSValueConst *get, JSValueConst *set, bool configurable, bool enumerable, bool writable, bool has_value) {
   JSAtom prop_atom = JS_ValueToAtom(ctx, *prop_name);
 
   int flags = 0;
@@ -374,6 +374,12 @@ void QJS_DefineProp(JSContext *ctx, JSValueConst *this_val, JSValueConst *prop_n
     if (has_value) {
       flags = flags | JS_PROP_HAS_ENUMERABLE;
     }
+  }
+  if (writable) {
+      flags = flags | JS_PROP_WRITABLE;
+      if (has_value) {
+          flags = flags | JS_PROP_HAS_WRITABLE;
+      }
   }
   if (!JS_IsUndefined(*get)) {
     flags = flags | JS_PROP_HAS_GET;
