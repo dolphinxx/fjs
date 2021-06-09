@@ -1,0 +1,12 @@
+build
+test/out
+
+.idea
+.vs
+.vscode
+.git
+.cxx
+.gradle
+gradle-wrapper.jar
+
+CMakeSettings.json
