@@ -41,12 +41,24 @@ android {
 
 task copySource {
     doLast {
-        println 'do it before build'
-
+        project.delete(files("build"))
+        copy {
+            from "../src/quickjs"
+            exclude "examples", "tests", "doc"
+            into "build"
+        }
+        copy {
+            from "../src/interface.cpp", "../src/quickjs.def"
+            into "build"
+        }
+        copy {
+            from "../src/patch"
+            into "build"
+        }
     }
 }
 
-task copyLibs() {
+task copyLibs {
     doLast {
         copy {
             from "build/intermediates/stripped_native_libs/release/out/lib"
@@ -55,5 +67,5 @@ task copyLibs() {
     }
 }
 
-assemble.dependsOn copySource
+preBuild.dependsOn copySource
 build.finalizedBy(copyLibs)
