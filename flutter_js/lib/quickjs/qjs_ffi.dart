@@ -9,27 +9,33 @@ export '../types.dart';
 
 DynamicLibrary? _qjsLib;
 
+const _dylibFilename = 'libquickjs';
+String? getDylibPath() {
+  if(Platform.environment.containsKey('FLUTTER_TEST')) {
+    if(Platform.isWindows) {
+      return Platform.environment['QUICKJS_TEST_PATH'] ?? '$_dylibFilename.dll';
+    }
+    if(Platform.isLinux) {
+      return Platform.environment['QUICKJS_TEST_PATH'] ?? '$_dylibFilename.so';
+    }
+    // Only support windows and linux in test mode
+    return null;
+  }
+  if(Platform.isWindows) {
+    return '$_dylibFilename.dll';
+  }
+  if(Platform.isLinux || Platform.isAndroid) {
+    return '$_dylibFilename.so';
+  }
+  return null;
+}
+
 DynamicLibrary get dylib {
   if (_qjsLib != null) {
     return _qjsLib!;
   }
-  _qjsLib = Platform.environment.containsKey('FLUTTER_TEST')
-      ? (Platform.isWindows
-      ? DynamicLibrary.open(Platform.environment['QUICKJS_TEST_PATH'] ??
-      'libquickjs.dll')
-      : Platform.isMacOS
-      ? DynamicLibrary.process()
-      : DynamicLibrary.open(
-      Platform.environment['QUICKJS_TEST_PATH'] ??
-          'libquickjs_c_bridge_plugin.so'))
-      : (Platform.isWindows
-      ? DynamicLibrary.open('libquickjs.dll')
-      : (Platform.isLinux
-      ? DynamicLibrary.open(Platform.environment['QUICKJS_TEST_PATH'] ??
-      'libquickjs_c_bridge_plugin.so')
-      : (Platform.isAndroid
-      ? DynamicLibrary.open('libfastdev_quickjs_runtime.so')
-      : DynamicLibrary.process())));
+  String? dylibPath = getDylibPath();
+  _qjsLib = dylibPath == null ? DynamicLibrary.process() : DynamicLibrary.open(dylibPath);
   return _qjsLib!;
 }
 
