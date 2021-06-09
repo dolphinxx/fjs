@@ -1,0 +1,59 @@
+buildscript {
+    repositories {
+        maven{ url 'http://maven.aliyun.com/nexus/content/groups/public/'}
+        google()
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:4.1.2'
+    }
+}
+
+allprojects {
+    repositories {
+        maven{ url 'http://maven.aliyun.com/nexus/content/groups/public/'}
+        google()
+        jcenter()
+    }
+}
+
+rootProject.buildDir = './build'
+
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 29
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+        }
+    }
+
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 29
+        ndk {
+            abiFilters "x86", "x86_64", "armeabi-v7a", "arm64-v8a"
+        }
+    }
+}
+
+task copySource {
+    doLast {
+        println 'do it before build'
+
+    }
+}
+
+task copyLibs() {
+    doLast {
+        copy {
+            from "build/intermediates/stripped_native_libs/release/out/lib"
+            into "../../flutter_js/android/libs"
+        }
+    }
+}
+
+assemble.dependsOn copySource
+build.finalizedBy(copyLibs)

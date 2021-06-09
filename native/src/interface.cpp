@@ -311,7 +311,7 @@ JSValue *QJS_NewString(JSContext *ctx, HeapChar *string) {
 
 char* QJS_GetString(JSContext *ctx, JSValueConst *value) {
   const char* owned = JS_ToCString(ctx, *value);
-  char* result = _strdup(owned);
+  char* result = strdup(owned);
   JS_FreeCString(ctx, owned);
   return result;
 }
@@ -487,7 +487,7 @@ char* QJS_Typeof(JSContext *ctx, JSValueConst *value) {
   else if (JS_IsSymbol(*value)) { result = "symbol"; }
   else if (JS_IsObject(*value)) { result = "object"; }
 
-  char* out = _strdup(result);
+  char* out = strdup(result);
   return out;
 }
 
