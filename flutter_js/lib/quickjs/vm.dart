@@ -1058,6 +1058,13 @@ class QuickJSVm extends Vm implements Disposable {
     }
   }
 
+  void stopEventLoop() {
+    if(_eventLoop != null) {
+      _eventLoop!.cancel();
+      _eventLoop = null;
+    }
+  }
+
   var _fnNextId = 0;
   var _fnMap = new Map<int, JSToDartFunction>();
 

@@ -202,4 +202,11 @@ abstract class Vm {
   void startEventLoop([int ms = 50]) {
     // default do nothing.
   }
+
+  /// Stop the running event loop.
+  ///
+  /// The event loop will stop when the vm disposed. For long living vm, you can stop it by calling this function.
+  void stopEventLoop() {
+    // default do nothing.
+  }
 }
