@@ -12,27 +12,31 @@ The following table shows how they are transferred:
 | Dart                              | JavaScript    | JavaScript    | Dart                 |
 | --------------------------------- | ------------- | ------------- | -------------------- |
 | null                              | null          | null          | null                 |
-| null                              | undefined     | undefined     | null                 |
+| null                              | undefined     | undefined     | null<sup>1</sup>     |
 | bool                              | boolean       | boolean       | bool                 |
 | int                               | Number        | Number(int)   | int                  |
-| double                            | Number        | Number(float) | double<sup>1</sup>   |
-| DateTime<sup>2</sup>              | Number        | Date          | int<sup>3</sup>      |
+| double                            | Number        | Number(float) | double<sup>2</sup>   |
+| DateTime                          | Number        | Date          | DateTime<sup>3</sup> |
 | String                            | String        | String        | String               |
-| TypedData&`List<int>`<sup>2</sup> | ArrayBuffer   | ArrayBuffer   | Uint8List            |
+| TypedData&`List<int>`<sup>4</sup> | ArrayBuffer   | ArrayBuffer   | Uint8List            |
 | List                              | Array         | Array         | List                 |
-| Map                               | Object        | Object        | Map<String, dynamic> |
-| Function                          | Function      | Function      | Function             |
+| Map                               | Object        | Object        | `Map<String, dynamic>` |
+| Function<sup>4</sup>              | Function      | Function      | Function             |
 | Future                            | Promise       | Promise       | Future               |
 | Exception                         | Error         | Error         | JSError              |
 | Error                             | Error         |               |                      |
 
 **Note:**
-1. JS `Number` values without fractional part are stored as `int` in QuickJS, and thus transferred to type `int` in Dart.
-2. Since create a JS object through C is complex, so we use number here instead.
-3. When `Vm.constructDate=true`, a Dart `DateTime` is constructed for JS `Date` value. 
-3. Set `Vm.reserveUndefined=true` to store JS `undefined` as `DART_UNDEFINED`(a const Symbol)
 
-**TODO:** Convert type `Error` in JavaScript to type `Error` in Dart. 
+1. Set `Vm.reserveUndefined=true` to convert JS `undefined` to `DART_UNDEFINED`(a const Symbol).
+
+2. JS `Number` values without fractional part are stored as `int` in QuickJS, and thus transferred to type `int` in Dart.
+
+3. A Dart `DateTime` is constructed for JS `Date` value if `Vm.constructDate=true`.
+
+4. If a `List<int>` is also a TypedData, it will be converted to JS `ArrayBuffer`, otherwise a normal `Array`.
+
+5. Dart functions must have the same signature with `JSToDartFunction` to be able to be converted to JS `function` or an `JSError` will be thrown. Meanwhile, a Dart function received from JS has the same signature with `JSToDartFunction`.
 
 ## Installation
 
@@ -40,54 +44,46 @@ Add `flutter_js` to your `pubspec.yaml`
 
 ```yaml
 dependencies:
-  flutter_js: 0.1.0+0
+# until it is published to pub.dev.
+#  flutter_js: 0.1.0+0
+```
+
+Or use the github url
+
+```yaml
+dependencies:
+  flutter_js:
+    git: https://github.com/dolphinxx/flutter_js
 ```
 
 ### Android
 
-Change the minimum Android sdk version to 21 (or higher) in your *android/app/build.gradle* file.
 
-```
-minSdkVersion 21
-```
-
-Merge the following proguard rules to your *android/app/proguard-rules.pro*
-
-```
-#Flutter Wrapper
--keep class io.flutter.app.** { *; }
--keep class io.flutter.plugin.**  { *; }
--keep class io.flutter.util.**  { *; }
--keep class io.flutter.view.**  { *; }
--keep class io.flutter.**  { *; }
--keep class io.flutter.plugins.**  { *; }
--keep class de.prosiebensat1digital.** { *; }
-``` 
 
 ### iOS
 
-Minimal required iOS version is 9.
+
 
 ## Usage
 
 ## Evaluate JavaScript source code
 
 ```dart
-jsRuntime.evaluate('console.log("Hello World!")');
+vm.evalCode('console.log("Hello World!")');
 ```
 
 ## Call a JavaScript function
 
 ```dart
-jsRuntime.callFunction(function, thisObj:thisObj, args:args);
+vm.callFunction(function, thisObj, args);
 ```
 
-## Add a native function to JavaScript
+## Add a dart function to JavaScript
 
 ```dart
-jsRuntime.bindNative('plus', (List args, {dynamic thisObj}) {
-  return args[0] + args[1];
-}, receiveThisObj: true);
+vm.newFunction('plus', (List<JSValuePointer> args, {JSValuePointer thisObj}) {
+  return vm.dartToJS(args[0] + args[1]);
+});
 ```
 
 ```javascript
@@ -96,28 +92,28 @@ console.log(result);
 // output: 3
 ```
 
-**Tip:** `bindNative` supports async function, which returns a `Promise` to JavaScript.
+**Tip:** You can return a Future from the callback of `newFunction`, and convert it to JS `Promise` through `vm.dartToJS`.
 
 ## Run Tests
 
-### Run tests for `QuickJS`
+### Prerequisite
 
-#### Windows
+#### QuickJS
 
-There is a prebuilt [quickjs_c_bridge.dll](../flutter_js_windows/windows/shared/quickjs_c_bridge.dll) in this project.
+##### Windows
 
-Create an environment variable `QUICKJS_TEST_PATH` and set its value to the absolute path of `quickjs_c_bridge.dll`.
+Go to *native/windows* and run *build.bat*, it will generate *libquickjs.dll* under *native/windows/build*, create an environment variable `QUICKJS_TEST_PATH` and set its value to the absolute path of *libquickjs.dll*.
 
-The DynamicLibrary loader will use this path to load quickjs dll when in test mode.
+There is a prebuilt [libquckjs.dll](../flutter_js_windows/windows/shared/libquckjs.dll), you can set it as the value of `QUICKJS_TEST_PATH` environment variable.
 
-### Run tests for `JavaScriptCore`
+#### JavaScriptCore
 
-#### Mac
+##### Mac
 
 As mentioned [here](https://flutter.dev/docs/development/platform-integration/c-interop#platform-library),
 you need to add `JavaScriptCore` library in Xcode.
 
-#### Windows
+##### Windows
 
 In order to run `JavaScriptCore` on Windows, you need to setup a runnable `JavaScriptCore` in your `PATH`.
 
@@ -127,4 +123,25 @@ In order to run `JavaScriptCore` on Windows, you need to setup a runnable `JavaS
 
   Download [WebKitRequirements](https://github.com/WebKitForWindows/WebKitRequirements/releases) and add the absolute path of `WebKitRequirementsWin64\bin64` to your `PATH`.
 
+### Unit test
+
+**Run all unit tests under *test* folder**
+
+
+```bash
+flutter test ./test
+```
+
+### Intergration test
+
+**Run intergration tests with flutter_driver**
+
+Go to [example](./example) and run:
+
+```bash
+flutter drive --target=test_driver/app.dart --driver=test_driver/dart_to_js_test.dart
+flutter drive --target=test_driver/app.dart --driver=test_driver/js_to_dart_test.dart
+```
+
+**note:** you need an emulator or a real device for intergration tests.
 
