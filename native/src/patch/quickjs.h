@@ -743,7 +743,6 @@ JSValue JS_NewObjectProto(JSContext *ctx, JSValueConst proto);
 JSValue JS_NewObject(JSContext *ctx);
 
 JS_BOOL JS_IsFunction(JSContext* ctx, JSValueConst val);
-JS_BOOL JS_IsPromise(JSContext* ctx, JSValueConst val);
 JS_BOOL JS_IsConstructor(JSContext* ctx, JSValueConst val);
 JS_BOOL JS_SetConstructorBit(JSContext *ctx, JSValueConst func_obj, JS_BOOL val);
 

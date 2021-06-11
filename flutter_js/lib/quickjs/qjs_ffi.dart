@@ -373,12 +373,6 @@ final JS_IsArray = dylib.lookupFunction<
     int Function(JSContextPointer ctx, JSValueConstPointer val)
 >('QJS_IsArray');
 
-/// int QJS_IsPromise(JSContext* ctx, JSValueConst *val)
-final JS_IsPromise = dylib.lookupFunction<
-  Uint32 Function(JSContextPointer, JSValueConstPointer val),
-  int Function(JSContextPointer, JSValueConstPointer val)
->('QJS_IsPromise');
-
 class JSPropertyEnum extends Struct {
   @Uint32()
   external int is_enumerable;

@@ -9886,15 +9886,6 @@ BOOL JS_IsFunction(JSContext *ctx, JSValueConst val)
     }
 }
 
-BOOL JS_IsPromise(JSContext* ctx, JSValueConst val)
-{
-    JSObject *p;
-    if (JS_VALUE_GET_TAG(val) != JS_TAG_OBJECT)
-        return FALSE;
-    p = JS_VALUE_GET_OBJ(val);
-    return p->class_id == JS_CLASS_PROMISE;
-}
-
 BOOL JS_IsCFunction(JSContext *ctx, JSValueConst val, JSCFunction *func, int magic)
 {
     JSObject *p;

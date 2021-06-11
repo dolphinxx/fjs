@@ -513,10 +513,6 @@ void QJS_TestStringArg(const char *string) {
 
   // Patch Start
 
-  int QJS_IsPromise(JSContext* ctx, JSValueConst *val) {
-    return JS_IsPromise(ctx, *val);
-  }
-
   /* return -1 if exception (proxy case) or TRUE/FALSE */
   int QJS_IsArray(JSContext *ctx, JSValueConst *val) {
     return JS_IsArray(ctx, *val);
