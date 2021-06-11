@@ -10102,7 +10102,7 @@ static inline BOOL JS_IsHTMLDDA(JSContext *ctx, JSValueConst obj)
     p = JS_VALUE_GET_OBJ(obj);
     return p->is_HTMLDDA;
 }
-                         
+
 static int JS_ToBoolFree(JSContext *ctx, JSValue val)
 {
     uint32_t tag = JS_VALUE_GET_TAG(val);
