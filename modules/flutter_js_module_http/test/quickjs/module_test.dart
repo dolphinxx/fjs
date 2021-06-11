@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter_js/flutter_js.dart';
 import 'package:flutter_js/quickjs/vm.dart';
 import 'package:flutter_js/vm.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -342,7 +341,7 @@ void main() {
   group('cache http_client', () {
     test('cache', () async {
       HttpServer server = await serve();
-      Vm vm = getJavaScriptVm();
+      Vm vm = Vm.create();
       vm.registerModule(FlutterJSHttpModule(cacheProvider: TestCacheProvider()));
       try{
         requestHandler = (request, response) async {

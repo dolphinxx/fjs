@@ -87,17 +87,17 @@ class JavaScriptCoreVm extends Vm implements Disposable {
 
   final Scope _scope = new Scope();
 
-  /// Whether to reserve JS undefined using [DART_UNDEFINED].
-  bool reserveUndefined = false;
-  /// Whether to JSON serialize/deserialize JS object values.
-  bool jsonSerializeObject = false;
-  /// Whether to auto construct DateTime for JS Date values.
-  bool constructDate = true;
-
-  /// Disable Console.log when `kRelease == true`
-  bool disableConsoleInRelease = true;
-
-  JavaScriptCoreVm() {
+  JavaScriptCoreVm({
+    bool? reserveUndefined,
+    bool? jsonSerializeObject,
+    bool? constructDate,
+    bool? disableConsoleInRelease,
+  }) : super(
+          reserveUndefined: reserveUndefined,
+          jsonSerializeObject: jsonSerializeObject,
+          constructDate: constructDate,
+          disableConsoleInRelease: disableConsoleInRelease,
+        ) {
     ctx = jSGlobalContextCreate(nullptr);
     _scope.manage(Lifetime<JSContextRef>(ctx, (_) {
       jSGlobalContextRelease(_);

@@ -1,16 +1,96 @@
+import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 import 'package:flutter_js/module.dart';
 
 import 'promise.dart';
 export 'promise.dart';
+import 'quickjs/vm.dart';
+import 'javascriptcore/vm.dart';
 import 'types.dart';
 export 'types.dart';
 
 typedef ModuleResolver = JSValuePointer Function(Vm vm);
 
 abstract class Vm {
+  /// Whether to reserve JS undefined using [DART_UNDEFINED].
+  bool reserveUndefined = false;
+  /// Whether to JSON serialize/deserialize JS object values.
+  bool jsonSerializeObject = false;
+  /// Whether to auto construct DateTime for JS Date values.
+  bool constructDate = true;
+
+  /// Disable Console.log when `kRelease == true`
+  bool disableConsoleInRelease = true;
+  /// Set to true to use JS_ArrayBufferCopy to construct an ArrayBuffer.
+  bool arrayBufferCopy = false;
+
+  Vm({
+    bool? reserveUndefined,
+    bool? jsonSerializeObject,
+    bool? constructDate,
+    bool? disableConsoleInRelease,
+    bool? arrayBufferCopy,
+  })  : reserveUndefined = reserveUndefined ?? false,
+        jsonSerializeObject = jsonSerializeObject ?? false,
+        constructDate = constructDate ?? true,
+        disableConsoleInRelease = disableConsoleInRelease ?? true,
+        arrayBufferCopy = arrayBufferCopy ?? false;
+
+  factory Vm.QuickJS({
+    bool? reserveUndefined,
+    bool? jsonSerializeObject,
+    bool? constructDate,
+    bool? disableConsoleInRelease,
+    bool? arrayBufferCopy,
+  }) {
+    return QuickJSVm(
+      reserveUndefined: reserveUndefined,
+      jsonSerializeObject: jsonSerializeObject,
+      constructDate: constructDate,
+      disableConsoleInRelease: disableConsoleInRelease,
+      arrayBufferCopy: arrayBufferCopy,
+    );
+  }
+
+  factory Vm.JavaScriptCore({
+    bool? reserveUndefined,
+    bool? jsonSerializeObject,
+    bool? constructDate,
+    bool? disableConsoleInRelease,
+  }) {
+    return JavaScriptCoreVm(
+        reserveUndefined: reserveUndefined,
+        jsonSerializeObject: jsonSerializeObject,
+        constructDate: constructDate,
+        disableConsoleInRelease: disableConsoleInRelease,);
+  }
+
+  factory Vm.create({
+    bool? reserveUndefined,
+    bool? jsonSerializeObject,
+    bool? constructDate,
+    bool? disableConsoleInRelease,
+    bool? arrayBufferCopy,
+  }) {
+    if (Platform.isIOS || Platform.isMacOS) {
+      return Vm.JavaScriptCore(
+        reserveUndefined: reserveUndefined,
+        jsonSerializeObject: jsonSerializeObject,
+        constructDate: constructDate,
+        disableConsoleInRelease: disableConsoleInRelease,
+      );
+    }
+    return Vm.QuickJS(
+      reserveUndefined: reserveUndefined,
+      jsonSerializeObject: jsonSerializeObject,
+      constructDate: constructDate,
+      disableConsoleInRelease: disableConsoleInRelease,
+      arrayBufferCopy: arrayBufferCopy,
+    );
+  }
+
   @protected
   @mustCallSuper
   void postConstruct() {

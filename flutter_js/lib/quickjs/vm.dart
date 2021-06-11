@@ -62,19 +62,19 @@ class QuickJSVm extends Vm implements Disposable {
   /// heap values created by this vm, and should be freed when this vm is disposed.
   final Set<JSValuePointer> _heapValues = Set();
 
-  /// Whether to reserve JS undefined using [DART_UNDEFINED].
-  bool reserveUndefined = false;
-  /// Whether to JSON serialize/deserialize JS object values.
-  bool jsonSerializeObject = false;
-  /// Whether to auto construct DateTime for JS Date values.
-  bool constructDate = true;
-
-  /// Disable Console.log when `kRelease == true`
-  bool disableConsoleInRelease = true;
-  /// Set to true to use JS_ArrayBufferCopy to construct an ArrayBuffer.
-  bool arrayBufferCopy = false;
-
-  QuickJSVm() {
+  QuickJSVm({
+    bool? reserveUndefined,
+    bool? jsonSerializeObject,
+    bool? constructDate,
+    bool? disableConsoleInRelease,
+    bool? arrayBufferCopy,
+  }) : super(
+    reserveUndefined: reserveUndefined,
+    jsonSerializeObject: jsonSerializeObject,
+    constructDate: constructDate,
+    disableConsoleInRelease: disableConsoleInRelease,
+    arrayBufferCopy: arrayBufferCopy,
+  ) {
     if (!_initialized) {
       final QJS_C_To_HostCallbackFuncPointer funcCallbackFp =
           Pointer.fromFunction(
