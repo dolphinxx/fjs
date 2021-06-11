@@ -254,6 +254,10 @@ JSValueConst *QJS_GetTrue() {
   return &QJS_True;
 }
 
+JSValue *QJS_NewBool(JSContext *ctx, int32_t val) {
+  return jsvalue_to_heap(JS_NewBool(ctx, val));
+}
+
 /**
  * Standard FFI functions
  */
@@ -509,17 +513,17 @@ void QJS_TestStringArg(const char *string) {
 
   // Patch Start
 
-  int QJS_IsPromise(JSContext* ctx, JSValueConst val) {
-    return JS_IsPromise(ctx, val);
+  int QJS_IsPromise(JSContext* ctx, JSValueConst *val) {
+    return JS_IsPromise(ctx, *val);
   }
 
   /* return -1 if exception (proxy case) or TRUE/FALSE */
-  int QJS_IsArray(JSContext *ctx, JSValueConst val) {
-    return JS_IsArray(ctx, val);
+  int QJS_IsArray(JSContext *ctx, JSValueConst *val) {
+    return JS_IsArray(ctx, *val);
   }
 
-  int QJS_ToBool(JSContext *ctx, JSValueConst val) {
-    return JS_ToBool(ctx, val);
+  int QJS_ToBool(JSContext *ctx, JSValueConst *val) {
+    return JS_ToBool(ctx, *val);
   }
 
   JSValue *QJS_NewArrayBufferCopy(JSContext *ctx, const uint8_t *buf, size_t len) {

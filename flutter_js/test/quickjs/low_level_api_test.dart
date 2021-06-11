@@ -29,6 +29,22 @@ void main() {
       // JS_FreeValuePointer(vm.ctx, ptr.value);
       expect(actual, expected);
     });
+    test('newBool', () {
+      {
+        int expected = 0;
+        final ptr = JS_NewBool(vm.ctx, expected);
+        int actual = JS_ToBool(vm.ctx, ptr);
+        JS_FreeValuePointer(vm.ctx, ptr);
+        expect(actual, expected);
+      }
+      {
+        int expected = 1;
+        final ptr = JS_NewBool(vm.ctx, expected);
+        int actual = JS_ToBool(vm.ctx, ptr);
+        JS_FreeValuePointer(vm.ctx, ptr);
+        expect(actual, expected);
+      }
+    });
     test('newError', () {
       final error = JSError('A test message.')..name = 'DARTJSError';
       final ptr = vm.newError(error);

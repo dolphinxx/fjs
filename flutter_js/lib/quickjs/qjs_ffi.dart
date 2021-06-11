@@ -174,6 +174,12 @@ final JS_GetFalse = dylib.lookupFunction<JSValueConstPointer Function(),
 final JS_GetTrue = dylib.lookupFunction<JSValueConstPointer Function(),
     JSValueConstPointer Function()>("QJS_GetTrue");
 
+/// JSValue *QJS_NewBool(JSContext *ctx, int32_t val)
+final JS_NewBool = dylib.lookupFunction<
+  JSValuePointer Function(JSContextPointer, Int32),
+  JSValuePointer Function(JSContextPointer, int)
+>('QJS_NewBool');
+
 final JS_NewRuntime = dylib.lookupFunction<JSRuntimePointer Function(),
     JSRuntimePointer Function()>("QJS_NewRuntime");
 
@@ -353,7 +359,7 @@ final JS_GetArrayBuffer = dylib.lookupFunction<
   Pointer<Uint8> Function(JSContextPointer ctx, Pointer<IntPtr> psize, JSValuePointer obj)
 >('QJS_GetArrayBuffer');
 
-/// int QJS_ToBool(JSContext *ctx, JSValueConst val)
+/// int QJS_ToBool(JSContext *ctx, JSValueConst *val)
 final JS_ToBool = dylib.lookupFunction<
   Uint32 Function(JSContextPointer, JSValueConstPointer),
   int Function(JSContextPointer ctx, JSValueConstPointer val)
@@ -361,13 +367,13 @@ final JS_ToBool = dylib.lookupFunction<
 
 /// return -1 if exception (proxy case) or TRUE/FALSE
 ///
-///   int QJS_IsArray(JSContext *ctx, JSValueConst val)
+///   int QJS_IsArray(JSContext *ctx, JSValueConst *val)
 final JS_IsArray = dylib.lookupFunction<
     Uint32 Function(JSContextPointer, JSValueConstPointer),
     int Function(JSContextPointer ctx, JSValueConstPointer val)
 >('QJS_IsArray');
 
-/// int QJS_IsPromise(JSContext* ctx, JSValueConst val)
+/// int QJS_IsPromise(JSContext* ctx, JSValueConst *val)
 final JS_IsPromise = dylib.lookupFunction<
   Uint32 Function(JSContextPointer, JSValueConstPointer val),
   int Function(JSContextPointer, JSValueConstPointer val)

@@ -37,8 +37,16 @@ void main() {
     test('bool values', () {
       expect(vm.evalAndConsume('true', (_) => vm.jsToDart(_)), isTrue);
       expect(vm.evalAndConsume('false', (_) => vm.jsToDart(_)), isFalse);
+      // !!String === true
       expect(vm.evalAndConsume('Boolean("true")', (_) => vm.jsToDart(_)), isTrue);
+      expect(vm.evalAndConsume('Boolean("false")', (_) => vm.jsToDart(_)), isTrue);
+
+      expect(vm.evalAndConsume('Boolean(true)', (_) => vm.jsToDart(_)), isTrue);
+      expect(vm.evalAndConsume('Boolean(false)', (_) => vm.jsToDart(_)), isFalse);
+      // !!object === true
       expect(vm.evalAndConsume('new Boolean(true)', (_) => vm.jsToDart(_)), isTrue);
+      expect(vm.evalAndConsume('new Boolean(false)', (_) => vm.jsToDart(_)), isTrue);
+      expect(vm.evalAndConsume('new Boolean("false")', (_) => vm.jsToDart(_)), isTrue);
     });
     test('string values', () {
       expect(vm.consumeAndFree(vm.evalCode('\'Hello World!\''), (_) => vm.jsToDart(_)), 'Hello World!');
