@@ -1048,7 +1048,10 @@ class QuickJSVm extends Vm implements Disposable {
     JS_FreeContext(ctx);
     _rtMap.remove(rt);
     JS_FreeRuntime(rt);
-    // print('vm disposed');
+    assert(() {
+      print('vm disposed');
+      return true;
+    }());
   }
 
   Timer? _eventLoop;

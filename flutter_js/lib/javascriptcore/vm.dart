@@ -585,7 +585,10 @@ return 0
     this._scope.dispose();
     this._timeoutMap.clear();
     this._fnMap.clear();
-    // print('vm disposed');
+    assert(() {
+      print('vm disposed');
+      return true;
+    }());
   }
 
   dynamic jsToDart(JSValueRef jsValueRef) {
