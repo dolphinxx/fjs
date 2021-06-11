@@ -35,14 +35,13 @@ void main() {
       Pointer<Utf8> strPtr = raw.toNativeUtf8();
       JSStringRef strRef = jSStringCreateWithUTF8CString(strPtr);
       malloc.free(strPtr);
-      /// containing terminating '\0'
       int length = jSStringGetMaximumUTF8CStringSize(strRef);
       Pointer<Utf8> buff = malloc<Uint8>(length).cast();
-      // int len = jSStringGetUTF8CString(strRef, buff, length);
+      int len = jSStringGetUTF8CString(strRef, buff, length);
       malloc.free(buff);
       jSStringRelease(strRef);
       // remove terminating '\0'
-      String actual = buff.toDartString(/*length: len - 1*/);
+      String actual = buff.toDartString(length: len - 1);
       expect(actual, raw);
     });
     test('jSStringGetCharactersPtr', () {
