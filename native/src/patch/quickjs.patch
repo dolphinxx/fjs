@@ -1,0 +1,647 @@
+﻿diff --git a/cutils.h b/cutils.h
+index 31f7cd8..8d9b4da 100644
+--- a/cutils.h
++++ b/cutils.h
+@@ -28,14 +28,27 @@
+ #include <stdlib.h>
+ #include <inttypes.h>
+ 
++#ifdef _MSC_VER
++#include <intrin.h>
++#endif
++
+ /* set if CPU is big endian */
+ #undef WORDS_BIGENDIAN
+ 
++#ifdef _MSC_VER
++#define likely(x)    (x)
++#define unlikely(x)  (x)
++#define force_inline __forceinline
++#define no_inline __declspec(noinline)
++#define __maybe_unused
++#define __attribute__(...)
++#else
+ #define likely(x)       __builtin_expect(!!(x), 1)
+ #define unlikely(x)     __builtin_expect(!!(x), 0)
+ #define force_inline inline __attribute__((always_inline))
+ #define no_inline __attribute__((noinline))
+ #define __maybe_unused __attribute__((unused))
++#endif
+ 
+ #define xglue(x, y) x ## y
+ #define glue(x, y) xglue(x, y)
+@@ -114,27 +127,66 @@ static inline int64_t min_int64(int64_t a, int64_t b)
+ /* WARNING: undefined if a = 0 */
+ static inline int clz32(unsigned int a)
+ {
++#ifdef _MSC_VER
++    unsigned long idx;
++    _BitScanReverse(&idx, a);
++    return 31 ^ idx;
++#else
+     return __builtin_clz(a);
++#endif
+ }
+ 
+ /* WARNING: undefined if a = 0 */
+ static inline int clz64(uint64_t a)
+ {
++#ifdef _MSC_VER
++    unsigned long idx;
++    _BitScanReverse64(&idx, a);
++    return 63 ^ idx;
++#else
+     return __builtin_clzll(a);
++#endif
+ }
+ 
+ /* WARNING: undefined if a = 0 */
+ static inline int ctz32(unsigned int a)
+ {
++#ifdef _MSC_VER
++    unsigned long idx;
++    _BitScanForward(&idx, a);
++    return 31 ^ idx;
++#else
+     return __builtin_ctz(a);
++#endif
+ }
+ 
+ /* WARNING: undefined if a = 0 */
+ static inline int ctz64(uint64_t a)
+ {
++#ifdef _MSC_VER
++    unsigned long idx;
++    _BitScanForward64(&idx, a);
++    return 63 ^ idx;
++#else
+     return __builtin_ctzll(a);
++#endif
+ }
+ 
++#ifdef _MSC_VER
++#pragma pack(push, 1)
++struct packed_u64 {
++    uint64_t v;
++};
++
++struct packed_u32 {
++    uint32_t v;
++};
++
++struct packed_u16 {
++    uint16_t v;
++};
++#pragma pack(pop)
++#else
+ struct __attribute__((packed)) packed_u64 {
+     uint64_t v;
+ };
+@@ -146,6 +198,7 @@ struct __attribute__((packed)) packed_u32 {
+ struct __attribute__((packed)) packed_u16 {
+     uint16_t v;
+ };
++#endif
+ 
+ static inline uint64_t get_u64(const uint8_t *tab)
+ {
+diff --git a/quickjs.c b/quickjs.c
+index 48aeffc..e7a8910 100644
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -28,7 +28,6 @@
+ #include <inttypes.h>
+ #include <string.h>
+ #include <assert.h>
+-#include <sys/time.h>
+ #include <time.h>
+ #include <fenv.h>
+ #include <math.h>
+@@ -40,6 +39,39 @@
+ #include <malloc_np.h>
+ #endif
+ 
++#ifdef _MSC_VER
++#pragma function (ceil)
++#pragma function (floor)
++
++#include <WinSock2.h>
++
++// From: https://stackoverflow.com/a/26085827
++int gettimeofday(struct timeval * tp, struct timezone * tzp)
++{
++	static const uint64_t EPOCH = ((uint64_t)116444736000000000ULL);
++
++	SYSTEMTIME  system_time;
++	FILETIME    file_time;
++	uint64_t    time;
++
++	GetSystemTime(&system_time);
++	SystemTimeToFileTime(&system_time, &file_time);
++	time = ((uint64_t)file_time.dwLowDateTime);
++	time += ((uint64_t)file_time.dwHighDateTime) << 32;
++
++	tp->tv_sec = (long)((time - EPOCH) / 10000000L);
++	tp->tv_usec = (long)(system_time.wMilliseconds * 1000);
++
++	return 0;
++}
++
++#else
++#include <sys/time.h>
++#ifndef INFINITY
++#define INFINITY 1.0 / 0.0
++#endif
++#endif
++
+ #include "cutils.h"
+ #include "list.h"
+ #include "quickjs.h"
+@@ -50,7 +82,7 @@
+ 
+ #define OPTIMIZE         1
+ #define SHORT_OPCODES    1
+-#if defined(EMSCRIPTEN)
++#if defined(EMSCRIPTEN) || defined(_MSC_VER)
+ #define DIRECT_DISPATCH  0
+ #else
+ #define DIRECT_DISPATCH  1
+@@ -70,7 +102,7 @@
+ /* define to include Atomics.* operations which depend on the OS
+    threads */
+ #if !defined(EMSCRIPTEN)
+-#define CONFIG_ATOMICS
++//#define CONFIG_ATOMICS
+ #endif
+ 
+ #if !defined(EMSCRIPTEN)
+@@ -1585,7 +1617,11 @@ static inline BOOL js_check_stack_overflow(JSRuntime *rt, size_t alloca_size)
+ /* Note: OS and CPU dependent */
+ static inline uintptr_t js_get_stack_pointer(void)
+ {
+-    return (uintptr_t)__builtin_frame_address(0);
++#ifdef _MSC_VER
++    return _AddressOfReturnAddress();
++#else
++    return __builtin_frame_address(0);
++#endif
+ }
+ 
+ static inline BOOL js_check_stack_overflow(JSRuntime *rt, size_t alloca_size)
+@@ -1680,7 +1716,7 @@ static inline size_t js_def_malloc_usable_size(void *ptr)
+     return malloc_size(ptr);
+ #elif defined(_WIN32)
+     return _msize(ptr);
+-#elif defined(EMSCRIPTEN)
++#elif defined(EMSCRIPTEN) || __ANDROID_API__ < 17
+     return 0;
+ #elif defined(__linux__)
+     return malloc_usable_size(ptr);
+@@ -1754,7 +1790,7 @@ static const JSMallocFunctions def_malloc_funcs = {
+     malloc_size,
+ #elif defined(_WIN32)
+     (size_t (*)(const void *))_msize,
+-#elif defined(EMSCRIPTEN)
++#elif defined(EMSCRIPTEN) || __ANDROID_API__ < 17
+     NULL,
+ #elif defined(__linux__)
+     (size_t (*)(const void *))malloc_usable_size,
+@@ -6317,6 +6353,137 @@ void JS_DumpMemoryUsage(FILE *fp, const JSMemoryUsage *s, JSRuntime *rt)
+     }
+ }
+ 
++void JS_DumpMemoryUsageToCharArray(char *fp, int length, const JSMemoryUsage *s, JSRuntime *rt)
++{
++    char *cur = fp;
++    const char* end = fp + length;
++    cur += snprintf(cur, end - cur, "QuickJS memory usage -- "
++#ifdef CONFIG_BIGNUM
++            "BigNum "
++#endif
++            CONFIG_VERSION " version, %d-bit, malloc limit: %"PRId64"\n\n",
++            (int)sizeof(void *) * 8, (int64_t)(ssize_t)s->malloc_limit);
++#if 1
++    if (rt) {
++        static const struct {
++            const char *name;
++            size_t size;
++        } object_types[] = {
++            { "JSRuntime", sizeof(JSRuntime) },
++            { "JSContext", sizeof(JSContext) },
++            { "JSObject", sizeof(JSObject) },
++            { "JSString", sizeof(JSString) },
++            { "JSFunctionBytecode", sizeof(JSFunctionBytecode) },
++        };
++        int i, usage_size_ok = 0;
++        for(i = 0; i < countof(object_types); i++) {
++            unsigned int size = object_types[i].size;
++            void *p = js_malloc_rt(rt, size);
++            if (p) {
++                unsigned int size1 = js_malloc_usable_size_rt(rt, p);
++                if (size1 >= size) {
++                    usage_size_ok = 1;
++                    cur += snprintf(cur, end - cur,  "  %3u + %-2u  %s\n",
++                            size, size1 - size, object_types[i].name);
++                }
++                js_free_rt(rt, p);
++            }
++        }
++        if (!usage_size_ok) {
++            cur += snprintf(cur, end - cur,  "  malloc_usable_size unavailable\n");
++        }
++        {
++            int obj_classes[JS_CLASS_INIT_COUNT + 1] = { 0 };
++            int class_id;
++            struct list_head *el;
++            list_for_each(el, &rt->gc_obj_list) {
++                JSGCObjectHeader *gp = list_entry(el, JSGCObjectHeader, link);
++                JSObject *p;
++                if (gp->gc_obj_type == JS_GC_OBJ_TYPE_JS_OBJECT) {
++                    p = (JSObject *)gp;
++                    obj_classes[min_uint32(p->class_id, JS_CLASS_INIT_COUNT)]++;
++                }
++            }
++            cur += snprintf(cur, end - cur,  "\n" "JSObject classes\n");
++            if (obj_classes[0])
++                cur += snprintf(cur, end - cur,  "  %5d  %2.0d %s\n", obj_classes[0], 0, "none");
++            for (class_id = 1; class_id < JS_CLASS_INIT_COUNT; class_id++) {
++                if (obj_classes[class_id]) {
++                    char buf[ATOM_GET_STR_BUF_SIZE];
++                    cur += snprintf(cur, end - cur,  "  %5d  %2.0d %s\n", obj_classes[class_id], class_id,
++                            JS_AtomGetStrRT(rt, buf, sizeof(buf), js_std_class_def[class_id - 1].class_name));
++                }
++            }
++            if (obj_classes[JS_CLASS_INIT_COUNT])
++                cur += snprintf(cur, end - cur,  "  %5d  %2.0d %s\n", obj_classes[JS_CLASS_INIT_COUNT], 0, "other");
++        }
++        cur += snprintf(cur, end - cur,  "\n");
++    }
++#endif
++    cur += snprintf(cur, end - cur,  "%-20s %8s %8s\n", "NAME", "COUNT", "SIZE");
++
++    if (s->malloc_count) {
++        cur += snprintf(cur, end - cur,  "%-20s %8"PRId64" %8"PRId64"  (%0.1f per block)\n",
++                "memory allocated", s->malloc_count, s->malloc_size,
++                (double)s->malloc_size / s->malloc_count);
++        cur += snprintf(cur, end - cur,  "%-20s %8"PRId64" %8"PRId64"  (%d overhead, %0.1f average slack)\n",
++                "memory used", s->memory_used_count, s->memory_used_size,
++                MALLOC_OVERHEAD, ((double)(s->malloc_size - s->memory_used_size) /
++                                  s->memory_used_count));
++    }
++    if (s->atom_count) {
++        cur += snprintf(cur, end - cur,  "%-20s %8"PRId64" %8"PRId64"  (%0.1f per atom)\n",
++                "atoms", s->atom_count, s->atom_size,
++                (double)s->atom_size / s->atom_count);
++    }
++    if (s->str_count) {
++        cur += snprintf(cur, end - cur,  "%-20s %8"PRId64" %8"PRId64"  (%0.1f per string)\n",
++                "strings", s->str_count, s->str_size,
++                (double)s->str_size / s->str_count);
++    }
++    if (s->obj_count) {
++        cur += snprintf(cur, end - cur,  "%-20s %8"PRId64" %8"PRId64"  (%0.1f per object)\n",
++                "objects", s->obj_count, s->obj_size,
++                (double)s->obj_size / s->obj_count);
++        cur += snprintf(cur, end - cur,  "%-20s %8"PRId64" %8"PRId64"  (%0.1f per object)\n",
++                "  properties", s->prop_count, s->prop_size,
++                (double)s->prop_count / s->obj_count);
++        cur += snprintf(cur, end - cur,  "%-20s %8"PRId64" %8"PRId64"  (%0.1f per shape)\n",
++                "  shapes", s->shape_count, s->shape_size,
++                (double)s->shape_size / s->shape_count);
++    }
++    if (s->js_func_count) {
++        cur += snprintf(cur, end - cur,  "%-20s %8"PRId64" %8"PRId64"\n",
++                "bytecode functions", s->js_func_count, s->js_func_size);
++        cur += snprintf(cur, end - cur,  "%-20s %8"PRId64" %8"PRId64"  (%0.1f per function)\n",
++                "  bytecode", s->js_func_count, s->js_func_code_size,
++                (double)s->js_func_code_size / s->js_func_count);
++        if (s->js_func_pc2line_count) {
++            cur += snprintf(cur, end - cur,  "%-20s %8"PRId64" %8"PRId64"  (%0.1f per function)\n",
++                    "  pc2line", s->js_func_pc2line_count,
++                    s->js_func_pc2line_size,
++                    (double)s->js_func_pc2line_size / s->js_func_pc2line_count);
++        }
++    }
++    if (s->c_func_count) {
++        cur += snprintf(cur, end - cur,  "%-20s %8"PRId64"\n", "C functions", s->c_func_count);
++    }
++    if (s->array_count) {
++        cur += snprintf(cur, end - cur,  "%-20s %8"PRId64"\n", "arrays", s->array_count);
++        if (s->fast_array_count) {
++            cur += snprintf(cur, end - cur,  "%-20s %8"PRId64"\n", "  fast arrays", s->fast_array_count);
++            cur += snprintf(cur, end - cur,  "%-20s %8"PRId64" %8"PRId64"  (%0.1f per fast array)\n",
++                    "  elements", s->fast_array_elements,
++                    s->fast_array_elements * (int)sizeof(JSValue),
++                    (double)s->fast_array_elements / s->fast_array_count);
++        }
++    }
++    if (s->binary_object_count) {
++        cur += snprintf(cur, end - cur,  "%-20s %8"PRId64" %8"PRId64"\n",
++                "binary objects", s->binary_object_count, s->binary_object_size);
++    }
++}
++
+ JSValue JS_GetGlobalObject(JSContext *ctx)
+ {
+     return JS_DupValue(ctx, ctx->global_obj);
+@@ -7242,7 +7409,7 @@ static int JS_DefinePrivateField(JSContext *ctx, JSValueConst obj,
+         JS_ThrowTypeErrorNotASymbol(ctx);
+         goto fail;
+     }
+-    prop = js_symbol_to_atom(ctx, (JSValue)name);
++    prop = js_symbol_to_atom(ctx, name);
+     p = JS_VALUE_GET_OBJ(obj);
+     prs = find_own_property(&pr, p, prop);
+     if (prs) {
+@@ -7273,7 +7440,7 @@ static JSValue JS_GetPrivateField(JSContext *ctx, JSValueConst obj,
+     /* safety check */
+     if (unlikely(JS_VALUE_GET_TAG(name) != JS_TAG_SYMBOL))
+         return JS_ThrowTypeErrorNotASymbol(ctx);
+-    prop = js_symbol_to_atom(ctx, (JSValue)name);
++    prop = js_symbol_to_atom(ctx, name);
+     p = JS_VALUE_GET_OBJ(obj);
+     prs = find_own_property(&pr, p, prop);
+     if (!prs) {
+@@ -7300,7 +7467,7 @@ static int JS_SetPrivateField(JSContext *ctx, JSValueConst obj,
+         JS_ThrowTypeErrorNotASymbol(ctx);
+         goto fail;
+     }
+-    prop = js_symbol_to_atom(ctx, (JSValue)name);
++    prop = js_symbol_to_atom(ctx, name);
+     p = JS_VALUE_GET_OBJ(obj);
+     prs = find_own_property(&pr, p, prop);
+     if (!prs) {
+@@ -7390,7 +7557,7 @@ static int JS_CheckBrand(JSContext *ctx, JSValueConst obj, JSValueConst func)
+     if (unlikely(JS_VALUE_GET_TAG(obj) != JS_TAG_OBJECT))
+         goto not_obj;
+     p = JS_VALUE_GET_OBJ(obj);
+-    prs = find_own_property(&pr, p, js_symbol_to_atom(ctx, (JSValue)brand));
++    prs = find_own_property(&pr, p, js_symbol_to_atom(ctx, brand));
+     if (!prs) {
+         JS_ThrowTypeError(ctx, "invalid brand on object");
+         return -1;
+@@ -9042,7 +9209,7 @@ int JS_DefineProperty(JSContext *ctx, JSValueConst this_obj,
+                 return -1;
+             }
+             /* this code relies on the fact that Uint32 are never allocated */
+-            val = (JSValueConst)JS_NewUint32(ctx, array_length);
++            val = JS_NewUint32(ctx, array_length);
+             /* prs may have been modified */
+             prs = find_own_property(&pr, p, prop);
+             assert(prs != NULL);
+@@ -9793,6 +9960,16 @@ void JS_SetOpaque(JSValue obj, void *opaque)
+     }
+ }
+ 
++/* return NULL if not an object of class class_id */
++JSClassID JS_GetClassID(JSValueConst obj)
++{
++    JSObject *p;
++    if (JS_VALUE_GET_TAG(obj) != JS_TAG_OBJECT)
++        return NULL;
++    p = JS_VALUE_GET_OBJ(obj);
++    return p->class_id;
++}
++
+ /* return NULL if not an object of class class_id */
+ void *JS_GetOpaque(JSValueConst obj, JSClassID class_id)
+ {
+@@ -9916,7 +10093,7 @@ static inline BOOL JS_IsHTMLDDA(JSContext *ctx, JSValueConst obj)
+     p = JS_VALUE_GET_OBJ(obj);
+     return p->is_HTMLDDA;
+ }
+-                         
++
+ static int JS_ToBoolFree(JSContext *ctx, JSValue val)
+ {
+     uint32_t tag = JS_VALUE_GET_TAG(val);
+@@ -10237,7 +10414,7 @@ static JSValue js_atof(JSContext *ctx, const char *str, const char **pp,
+             } else
+ #endif
+             {
+-                double d = 1.0 / 0.0;
++                double d = INFINITY;
+                 if (is_neg)
+                     d = -d;
+                 val = JS_NewFloat64(ctx, d);
+@@ -16043,7 +16220,7 @@ static JSValue js_call_c_function(JSContext *ctx, JSValueConst func_obj,
+ #else
+     sf->js_mode = 0;
+ #endif
+-    sf->cur_func = (JSValue)func_obj;
++    sf->cur_func = func_obj;
+     sf->arg_count = argc;
+     arg_buf = argv;
+ 
+@@ -16287,7 +16464,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
+     sf->js_mode = b->js_mode;
+     arg_buf = argv;
+     sf->arg_count = argc;
+-    sf->cur_func = (JSValue)func_obj;
++    sf->cur_func = func_obj;
+     init_list_head(&sf->var_ref_list);
+     var_refs = p->u.func.var_refs;
+ 
+@@ -20169,7 +20346,7 @@ static void free_token(JSParseState *s, JSToken *token)
+     }
+ }
+ 
+-static void __attribute((unused)) dump_token(JSParseState *s,
++static void __maybe_unused dump_token(JSParseState *s,
+                                              const JSToken *token)
+ {
+     switch(token->val) {
+@@ -39258,8 +39435,8 @@ static int64_t JS_FlattenIntoArray(JSContext *ctx, JSValueConst target,
+         if (!JS_IsUndefined(mapperFunction)) {
+             JSValueConst args[3] = { element, JS_NewInt64(ctx, sourceIndex), source };
+             element = JS_Call(ctx, mapperFunction, thisArg, 3, args);
+-            JS_FreeValue(ctx, (JSValue)args[0]);
+-            JS_FreeValue(ctx, (JSValue)args[1]);
++            JS_FreeValue(ctx, args[0]);
++            JS_FreeValue(ctx, args[1]);
+             if (JS_IsException(element))
+                 return -1;
+         }
+@@ -40676,7 +40853,7 @@ static JSValue js_string_match(JSContext *ctx, JSValueConst this_val,
+         str = JS_NewString(ctx, "g");
+         if (JS_IsException(str))
+             goto fail;
+-        args[args_len++] = (JSValueConst)str;
++        args[args_len++] = str;
+     }
+     rx = JS_CallConstructor(ctx, ctx->regexp_ctor, args_len, args);
+     JS_FreeValue(ctx, str);
+@@ -41734,7 +41911,7 @@ static JSValue js_math_min_max(JSContext *ctx, JSValueConst this_val,
+     uint32_t tag;
+ 
+     if (unlikely(argc == 0)) {
+-        return __JS_NewFloat64(ctx, is_max ? -1.0 / 0.0 : 1.0 / 0.0);
++        return __JS_NewFloat64(ctx, is_max ? -INFINITY : INFINITY);
+     }
+ 
+     tag = JS_VALUE_GET_TAG(argv[0]);
+@@ -45704,7 +45881,7 @@ static JSMapRecord *map_add_record(JSContext *ctx, JSMapState *s,
+     } else {
+         JS_DupValue(ctx, key);
+     }
+-    mr->key = (JSValue)key;
++    mr->key = key;
+     h = map_hash_key(ctx, key) & (s->hash_size - 1);
+     list_add_tail(&mr->hash_link, &s->hash_table[h]);
+     list_add_tail(&mr->link, &s->records);
+@@ -45926,7 +46103,7 @@ static JSValue js_map_forEach(JSContext *ctx, JSValueConst this_val,
+                 args[0] = args[1];
+             else
+                 args[0] = JS_DupValue(ctx, mr->value);
+-            args[2] = (JSValue)this_val;
++            args[2] = this_val;
+             ret = JS_Call(ctx, func, this_arg, 3, (JSValueConst *)args);
+             JS_FreeValue(ctx, args[0]);
+             if (!magic)
+@@ -46904,7 +47081,7 @@ static JSValue js_promise_all(JSContext *ctx, JSValueConst this_val,
+                 goto fail_reject;
+             }
+             resolve_element_data[0] = JS_NewBool(ctx, FALSE);
+-            resolve_element_data[1] = (JSValueConst)JS_NewInt32(ctx, index);
++            resolve_element_data[1] = JS_NewInt32(ctx, index);
+             resolve_element_data[2] = values;
+             resolve_element_data[3] = resolving_funcs[is_promise_any];
+             resolve_element_data[4] = resolve_element_env;
+@@ -47263,7 +47440,7 @@ static JSValue js_async_from_sync_iterator_unwrap_func_create(JSContext *ctx,
+ {
+     JSValueConst func_data[1];
+ 
+-    func_data[0] = (JSValueConst)JS_NewBool(ctx, done);
++    func_data[0] = JS_NewBool(ctx, done);
+     return JS_NewCFunctionData(ctx, js_async_from_sync_iterator_unwrap,
+                                1, 0, 1, func_data);
+ }
+@@ -47841,7 +48018,7 @@ static const JSCFunctionListEntry js_global_funcs[] = {
+     JS_CFUNC_MAGIC_DEF("encodeURIComponent", 1, js_global_encodeURI, 1 ),
+     JS_CFUNC_DEF("escape", 1, js_global_escape ),
+     JS_CFUNC_DEF("unescape", 1, js_global_unescape ),
+-    JS_PROP_DOUBLE_DEF("Infinity", 1.0 / 0.0, 0 ),
++    JS_PROP_DOUBLE_DEF("Infinity", INFINITY, 0 ),
+     JS_PROP_DOUBLE_DEF("NaN", NAN, 0 ),
+     JS_PROP_UNDEFINED_DEF("undefined", 0 ),
+ 
+@@ -52692,8 +52869,8 @@ static int js_TA_cmp_generic(const void *a, const void *b, void *opaque) {
+             psc->exception = 1;
+         }
+     done:
+-        JS_FreeValue(ctx, (JSValue)argv[0]);
+-        JS_FreeValue(ctx, (JSValue)argv[1]);
++        JS_FreeValue(ctx, argv[0]);
++        JS_FreeValue(ctx, argv[1]);
+     }
+     return cmp;
+ }
+diff --git a/quickjs.h b/quickjs.h
+index d4a5cd3..8bd9fd7 100644
+--- a/quickjs.h
++++ b/quickjs.h
+@@ -28,6 +28,11 @@
+ #include <stdio.h>
+ #include <stdint.h>
+ 
++#if defined(__ANDROID__)
++#include <android/log.h>
++#define printf(...) __android_log_print(ANDROID_LOG_INFO, "qjs", __VA_ARGS__)
++#endif
++
+ #ifdef __cplusplus
+ extern "C" {
+ #endif
+@@ -40,7 +45,11 @@ extern "C" {
+ #else
+ #define js_likely(x)     (x)
+ #define js_unlikely(x)   (x)
++#ifdef _MSC_VER
++#define js_force_inline  __forceinline
++#else
+ #define js_force_inline  inline
++#endif
+ #define __js_printf_like(a, b)
+ #endif
+ 
+@@ -64,6 +73,10 @@ typedef uint32_t JSAtom;
+ #define JS_NAN_BOXING
+ #endif
+ 
++#ifdef _MSC_VER
++typedef size_t ssize_t;
++#endif
++
+ enum {
+     /* all tags with a reference count are negative */
+     JS_TAG_FIRST       = -11, /* first negative tag */
+@@ -215,8 +228,23 @@ typedef struct JSValue {
+ #define JS_VALUE_GET_FLOAT64(v) ((v).u.float64)
+ #define JS_VALUE_GET_PTR(v) ((v).u.ptr)
+ 
++#ifdef _MSC_VER
++static inline JSValue JS_MKVAL(int tag, int32_t val) {
++    JSValue v;
++    v.u.int32 = val;
++    v.tag = tag;
++    return v;
++}
++static inline JSValue JS_MKPTR(int tag, void *val) {
++    JSValue v;
++    v.u.ptr = val;
++    v.tag = tag;
++    return v;
++}
++#else
+ #define JS_MKVAL(tag, val) (JSValue){ (JSValueUnion){ .int32 = val }, tag }
+ #define JS_MKPTR(tag, p) (JSValue){ (JSValueUnion){ .ptr = p }, tag }
++#endif
+ 
+ #define JS_TAG_IS_FLOAT64(tag) ((unsigned)(tag) == JS_TAG_FLOAT64)
+ 
+@@ -414,6 +442,7 @@ typedef struct JSMemoryUsage {
+ 
+ void JS_ComputeMemoryUsage(JSRuntime *rt, JSMemoryUsage *s);
+ void JS_DumpMemoryUsage(FILE *fp, const JSMemoryUsage *s, JSRuntime *rt);
++void JS_DumpMemoryUsageToCharArray(char *fp, int length, const JSMemoryUsage *s, JSRuntime *rt);
+ 
+ /* atom support */
+ #define JS_ATOM_NULL 0
+@@ -521,9 +550,9 @@ static js_force_inline JSValue JS_NewInt64(JSContext *ctx, int64_t val)
+ {
+     JSValue v;
+     if (val == (int32_t)val) {
+-        v = JS_NewInt32(ctx, val);
++        v = JS_NewInt32(ctx, (int32_t)val);
+     } else {
+-        v = __JS_NewFloat64(ctx, val);
++        v = __JS_NewFloat64(ctx, (double)val);
+     }
+     return v;
+ }
+@@ -666,7 +695,7 @@ static inline JSValue JS_DupValue(JSContext *ctx, JSValueConst v)
+         JSRefCountHeader *p = (JSRefCountHeader *)JS_VALUE_GET_PTR(v);
+         p->ref_count++;
+     }
+-    return (JSValue)v;
++    return v;
+ }
+ 
+ static inline JSValue JS_DupValueRT(JSRuntime *rt, JSValueConst v)
+@@ -675,7 +704,7 @@ static inline JSValue JS_DupValueRT(JSRuntime *rt, JSValueConst v)
+         JSRefCountHeader *p = (JSRefCountHeader *)JS_VALUE_GET_PTR(v);
+         p->ref_count++;
+     }
+-    return (JSValue)v;
++    return v;
+ }
+ 
+ int JS_ToBool(JSContext *ctx, JSValueConst val); /* return -1 for JS_EXCEPTION */
+@@ -800,6 +829,7 @@ int JS_DefinePropertyGetSet(JSContext *ctx, JSValueConst this_obj,
+                             int flags);
+ void JS_SetOpaque(JSValue obj, void *opaque);
+ void *JS_GetOpaque(JSValueConst obj, JSClassID class_id);
++JSClassID JS_GetClassID(JSValueConst obj);
+ void *JS_GetOpaque2(JSContext *ctx, JSValueConst obj, JSClassID class_id);
+ 
+ /* 'buf' must be zero terminated i.e. buf[buf_len] = '\0'. */
