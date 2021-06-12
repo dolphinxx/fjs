@@ -43,6 +43,11 @@ void main() {
       expect(output, isNull);
     }));
     test('JavaScriptCore setTimeout nested', capturePrint(() async {
+      // FIXME: The following exception thrown when running after the `clearTimeout` test.
+      // If switch the order of the two tests, the exception is gone.
+      // nhandled error during finalization of test:
+      // TestDeviceException(Shell subprocess crashed with segmentation fault.)
+      await Future.delayed(Duration(seconds: 2));
       vm.evalCode('setTimeout(() => setTimeout(() => console.log(1024), 1000), 1000)');
       await Future.delayed(Duration(milliseconds: 3000));
       String? output = consumeLastPrint();
