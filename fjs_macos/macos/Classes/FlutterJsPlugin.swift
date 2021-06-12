@@ -3,7 +3,7 @@ import FlutterMacOS
 
 public class FlutterJsPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
-    let channel = FlutterMethodChannel(name: "fjs", binaryMessenger: registrar.messenger)
+    let channel = FlutterMethodChannel(name: "fjs.whaleread.com/fjs", binaryMessenger: registrar.messenger)
     let instance = FlutterJsPlugin()
     registrar.addMethodCallDelegate(instance, channel: channel)
   }
