@@ -582,6 +582,7 @@ return 0
   /// Dispose of this VM's underlying resources.
   dispose() {
     super.dispose();
+    _vmMap.remove(ctx);
     this._scope.dispose();
     this._timeoutMap.clear();
     this._fnMap.clear();
@@ -873,7 +874,7 @@ return 0
     final vm = _vmMap[ctx];
     if(vm == null) {
       throw new JSError(
-          'QuickJSVm(ctx = ${ctx}) not found for C function call "${function}"');
+          'JavaScriptCoreVm(ctx = ${ctx}) not found for C function call "${function}"');
     }
     return vm.cToHostCallbackFunction(ctx, thisObject, argumentCount, arguments, exception);
   }
