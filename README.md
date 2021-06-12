@@ -8,35 +8,11 @@ We uses [QuickJS](https://bellard.org/quickjs/) for Android/Windows/Linux and Ja
 
 On Apple devices, it is prohibited to ship mobile applications that run JavaScript using a different JIT engine than the one originally provided with the system. Thus we have no choise other than using JavascriptCore.
 
-We use QuickJS for other platforms, since it has several obvious benefits:
+## License
 
-1. Much smaller bundle size.
-2. Competitive performance advantage.
-3. Free control of exposing C api.
-4. Consist behavior on various devices.
-5. In time sync with official version.
+FlutterJS is under the [BSD 3-clause license](https://opensource.org/licenses/BSD-3-Clause) as recommended by [dart.dev](https://dart.dev/tools/pub/publishing)
 
-
-
-## Features:
-
-### Evaluate JavaScript code
-
-```dart
-Context ctx = getJavaScriptContext();
-String result = ctx.eval(r'Hello Flutter!')
-  .consume((value) => ctx.jsToDart(value));
-print(result);// Hello Flutter!
-ctx.dispose();
-```
-
-### Call JavaScript function
-
-```dart
-Context ctx = getJavaScriptContext();
-// TODO:
-```
-
+[QuickJS](https://bellard.org/quickjs/) is under the [MIT license](https://opensource.org/licenses/MIT)
 
 ## Thanks To
 
