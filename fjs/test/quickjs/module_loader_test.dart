@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:fjs/javascriptcore/vm.dart';
 import 'package:fjs/module.dart';
 import 'package:fjs/quickjs/vm.dart';
 import 'package:fjs/quickjs/qjs_ffi.dart';
@@ -19,11 +18,6 @@ class GreetingModule extends FlutterJSModule {
       }
       return vm.dupRef(cache!);
     }
-    if(vm is JavaScriptCoreVm) {
-      return cache = cache ?? vm.newFunction(null, (args, {thisObj}) {
-        return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
-      });
-    }
     throw 'unsupported!';
   }
 }
@@ -36,11 +30,6 @@ class AsyncGreetingModule extends FlutterJSModule {
     if(vm is QuickJSVm) {
       return vm.newPromise(Future.delayed(Duration(seconds: 2), () => vm.newFunction(null, (args, {thisObj}) {
         print('async greeting called.');
-        return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
-      }))).promise.value;
-    }
-    if(vm is JavaScriptCoreVm) {
-      return vm.newPromise(Future.delayed(Duration(seconds: 2), () => vm.newFunction(null, (args, {thisObj}) {
         return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
       }))).promise.value;
     }
@@ -75,35 +64,6 @@ void main() {
       ''');
       var actual = vm.jsToDart(result);
       Future.delayed(Duration(seconds: 3), () => vm.executePendingJobs());
-      final actualStr = await Future.value(actual);
-      expect(actualStr, 'Hello Flutter!');
-      print(actualStr);
-    });
-  });
-  group('JavaScriptCore', () {
-    late JavaScriptCoreVm vm;
-    setUp(() {
-      vm = JavaScriptCoreVm();
-    });
-    tearDown(() {
-      vm.dispose();
-    });
-    test('JavaScriptCore module_loader simple', () async {
-      vm.registerModule(GreetingModule());
-      final actual = vm.jsToDart(vm.evalCode('''
-      var greeting = require("greeting");
-      var greeting = require("greeting");
-      var greeting = require("greeting");
-      greeting("Flutter");
-      '''));
-      expect(actual, 'Hello Flutter!');
-      print(actual);
-    });
-    test('JavaScriptCore module_loader async', () async {
-      vm.registerModule(AsyncGreetingModule());
-      var actual = vm.jsToDart(vm.evalCode('''
-      require("async_greeting").then(greeting => greeting("Flutter"));
-      '''));
       final actualStr = await Future.value(actual);
       expect(actualStr, 'Hello Flutter!');
       print(actualStr);
