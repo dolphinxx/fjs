@@ -1,0 +1,23 @@
+name: fjs_module_boilerplate
+description: Boilerplate for creating flutter js module.
+homepage: https://github.com/dolphinxx/fjs/modules/fjs_module_boilerplate
+
+version: 0.1.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  #change to pub.dev package version or github path
+  fjs:
+    path: ../../fjs
+  http: 0.13.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  pedantic: ^1.10.0
+
+environment:
+  sdk: ">=2.13.0 <3.0.0"
+  flutter: ">=1.10.0"
+  

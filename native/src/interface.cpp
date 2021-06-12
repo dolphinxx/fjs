@@ -23,7 +23,7 @@
 #include "quickjs.h"
 // #include "quickjs-libc.h"
 
-#define PKG "flutter_js: "
+#define PKG "fjs: "
 
 #ifdef QJS_DEBUG_MODE
 #define QJS_DEBUG(msg) qts_log(msg);

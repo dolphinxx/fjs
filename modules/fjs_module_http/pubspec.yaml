@@ -1,0 +1,21 @@
+name: fjs_module_http
+description: A module for the fjs plugin to bring native http api to JS.
+homepage: https://github.com/dolphinxx/fjs/modules/fjs_module_http
+
+version: 0.1.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  fjs:
+    path: ../../fjs
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  pedantic: ^1.10.0
+
+environment:
+  sdk: ">=2.13.0 <3.0.0"
+  flutter: ">=1.10.0"
+  

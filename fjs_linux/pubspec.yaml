@@ -1,0 +1,19 @@
+name: fjs_linux
+description: Linux implementation of the fjs plugin.
+version: 0.1.0
+homepage: https://github.com/dolphinxx/fjs/tree/master/fjs/fjs_linux
+
+flutter:
+  plugin:
+    implements: fjs
+    platforms:
+      linux:
+        pluginClass: FlutterJsPlugin
+
+environment:
+  sdk: ">=2.12.0 <3.0.0"
+  flutter: ">=1.20.0"
+
+dependencies:
+  flutter:
+    sdk: flutter

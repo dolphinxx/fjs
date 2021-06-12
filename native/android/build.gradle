@@ -62,7 +62,7 @@ task copyLibs {
     doLast {
         copy {
             from "build/intermediates/stripped_native_libs/release/out/lib"
-            into "../../flutter_js/android/libs"
+            into "../../fjs/android/libs"
         }
     }
 }

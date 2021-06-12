@@ -1,0 +1,19 @@
+name: fjs_platform_interface
+description: A common platform interface for the fjs plugin.
+homepage: https://github.com/dolphinxx/fjs/fjs_platform_interface
+
+version: 0.1.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+#  plugin_platform_interface: ^2.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  pedantic: ^1.10.0
+
+environment:
+  sdk: ">=2.13.0 <3.0.0"
+  flutter: ">=1.10.0"

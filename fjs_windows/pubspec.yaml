@@ -1,0 +1,19 @@
+name: fjs_windows
+description: Windows implementation of the fjs plugin.
+version: 0.1.0
+homepage: https://github.com/dolphinxx/fjs/tree/master/fjs/fjs_windows
+
+flutter:
+  plugin:
+    implements: fjs
+    platforms:
+      windows:
+        pluginClass: FlutterJsPlugin
+
+environment:
+  sdk: ">=2.13.0 <3.0.0"
+  flutter: ">=1.20.0"
+
+dependencies:
+  flutter:
+    sdk: flutter

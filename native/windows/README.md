@@ -1,6 +1,6 @@
 # Windows
 
-Generates shared binaries libraries to be consumed by flutter_js on desktop platforms.
+Generates shared binaries libraries to be consumed by fjs on desktop platforms.
 
 ## Build
 
