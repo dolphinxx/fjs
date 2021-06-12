@@ -2,11 +2,23 @@
 
 FlutterJS is a <b>Dart</b> wrapper of `JavaScriptCore`(for Mac/iOS) and `QuickJS`(for Android/Windows/Linux).
 
-## Data types support and codecs
+## Features
+
+### Builtin
+
+- setTimeout
+
+- console.log
+
+- NodeJS-like `require`
+
+- [HTTP request ability](../modules/fjs_module_http)(expose HTTP api of *dart:io* to JS)
+
+### Data types support and codecs
 
 This plugin uses `ffi` to receive data from JavaScript and vice versa.
 
-The following table shows how they are transferred:
+The following table shows how they are converted:
 
 | Dart                              | JavaScript    | JavaScript    | Dart                 |
 | --------------------------------- | ------------- | ------------- | -------------------- |
@@ -29,7 +41,7 @@ The following table shows how they are transferred:
 
 1. Set `Vm.reserveUndefined=true` to convert JS `undefined` to `DART_UNDEFINED`(a const Symbol).
 
-2. JS `Number` values without fractional part are stored as `int` in QuickJS, and thus transferred to type `int` in Dart.
+2. JS `Number` values without fractional part are stored as `int` in QuickJS, and thus converted to type `int` in Dart.
 
 3. A Dart `DateTime` is constructed for JS `Date` value if `Vm.constructDate=true`.
 
@@ -44,7 +56,7 @@ Add `fjs` to your `pubspec.yaml`
 ```yaml
 dependencies:
 # until it is published to pub.dev.
-#  fjs: 0.1.0+0
+#  fjs: 0.1.0
 ```
 
 Or use the github url
@@ -131,9 +143,9 @@ In order to run `JavaScriptCore` on Windows, you need to setup a runnable `JavaS
 flutter test ./test
 ```
 
-### Intergration test
+### Integration test
 
-**Run intergration tests with flutter_driver**
+**Run integration tests with flutter_driver**
 
 Go to [example](./example) and run:
 
@@ -142,5 +154,7 @@ flutter drive --target=test_driver/app.dart --driver=test_driver/dart_to_js_test
 flutter drive --target=test_driver/app.dart --driver=test_driver/js_to_dart_test.dart
 ```
 
-**note:** you need an emulator or a real device for intergration tests.
+**note:** you need an emulator or a real device for integration tests.
+
+You can add `--device-id` to specify the device to run tests. eg: `--device-id=windows` to run tests on windows.
 
