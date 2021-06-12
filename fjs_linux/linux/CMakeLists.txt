@@ -11,7 +11,7 @@ set(CMAKE_CXX_COMPILER "g++")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -DANDROID_STL=c++_static -DDEBUGGER_SERVER_PORT=${DEBUGGER_SERVER_PORT}")
 
 add_library(${PLUGIN_NAME} SHARED
-  "fjs_plugin.cc"
+  "flutter_js_plugin.cc"
 )
 
 apply_standard_settings(${PLUGIN_NAME})
