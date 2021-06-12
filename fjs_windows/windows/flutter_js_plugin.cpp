@@ -1,4 +1,4 @@
-#include "include/fjs_windows/fjs_plugin.h"
+#include "include/fjs_windows/flutter_js_plugin.h"
 
 // This must be included before many other Windows headers.
 #include <windows.h>
@@ -20,15 +20,13 @@ class FlutterJsPlugin : public flutter::Plugin {
  public:
   static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
 
-  FlutterJsPlugin();
-
   virtual ~FlutterJsPlugin();
 
  private:
+  FlutterJsPlugin();
   // Called when a method is called on this plugin's channel from Dart.
-  void HandleMethodCall(
-      const flutter::MethodCall<flutter::EncodableValue> &method_call,
-      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+  void HandleMethodCall(const flutter::MethodCall<>& method_call,
+                          std::unique_ptr<flutter::MethodResult<>> result);
 };
 
 // static
@@ -36,10 +34,11 @@ void FlutterJsPlugin::RegisterWithRegistrar(
     flutter::PluginRegistrarWindows *registrar) {
   auto channel =
       std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-          registrar->messenger(), "fjs",
+          registrar->messenger(), "fjs.whaleread.com/fjs",
           &flutter::StandardMethodCodec::GetInstance());
 
-  auto plugin = std::make_unique<FlutterJsPlugin>();
+  // Uses new instead of make_unique due to private constructor.
+  std::unique_ptr<FlutterJsPlugin> plugin(new FlutterJsPlugin());
 
   channel->SetMethodCallHandler(
       [plugin_pointer = plugin.get()](const auto &call, auto result) {
@@ -49,9 +48,9 @@ void FlutterJsPlugin::RegisterWithRegistrar(
   registrar->AddPlugin(std::move(plugin));
 }
 
-FlutterJsPlugin::FlutterJsPlugin() {}
+FlutterJsPlugin::FlutterJsPlugin() = default;
 
-FlutterJsPlugin::~FlutterJsPlugin() {}
+FlutterJsPlugin::~FlutterJsPlugin() = default;
 
 void FlutterJsPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &method_call,

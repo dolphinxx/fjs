@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.15)
 set(PROJECT_NAME "fjs_windows")
 project(${PROJECT_NAME} LANGUAGES CXX)
-add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+#add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 
 set(PLUGIN_NAME "${PROJECT_NAME}_plugin")
 
 add_library(${PLUGIN_NAME} SHARED
-  "fjs_plugin.cpp"
+  "flutter_js_plugin.cpp"
 )
 
 apply_standard_settings(${PLUGIN_NAME})
@@ -25,7 +25,6 @@ set(fjs_bundled_libraries
   ""
   PARENT_SCOPE
 )
-
 
 set(BUILD_BUNDLE_DIR "$<TARGET_FILE_DIR:${BINARY_NAME}>")
 # Make the "install" step default, as it's required to run.

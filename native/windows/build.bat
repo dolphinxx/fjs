@@ -27,5 +27,7 @@ cmake -S . -B .\build -DCMAKE_BUILD_TYPE=Release -G "Ninja"
 
 cmake --build .\build
 
+xcopy /s /i .\build\libquickjs.dll ..\..\fjs_windows\windows\shared\ /Y
+
 echo "Press any key to exit . . ."
 pause>nul
