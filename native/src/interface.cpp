@@ -1,4 +1,4 @@
-// Borrowwed from https://github.com/justjake/quickjs-emscripten/blob/master/c/interface.c#e58ca7bb8a3ddb008fc1bc5ef6406bb9f8a8591f
+// Borrowed from https://github.com/justjake/quickjs-emscripten/blob/master/c/interface.c#e58ca7bb8a3ddb008fc1bc5ef6406bb9f8a8591f
 /**
  * interface.c
  *
