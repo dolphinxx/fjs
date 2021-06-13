@@ -57,7 +57,7 @@ class _FlutterJsHomeScreenState extends State<FlutterJsHomeScreen> {
 
   late TextEditingController editController;
 
-  final Vm vm = Vm.create();
+  final Vm vm = Vm.create(disableConsoleInRelease: false);
 
   dynamic evalJS() {
     return vm.jsToDart(vm.evalCode(editController.text));
