@@ -75,6 +75,10 @@ Future<void> runTest(options) async {
     await testJSToDart(options);
     return;
   }
+  if(options['group'] == 'setTimeout') {
+    await testSetTimeout(options);
+    return;
+  }
 }
 
 dynamic parseDartVal(Map options, Vm vm) {
@@ -157,6 +161,19 @@ Future<void> testJSToDart(Map options) async {
     } else {
       rethrow;
     }
+  } finally {
+    vm.dispose();
+  }
+}
+
+Future<void> testSetTimeout(Map options) async {
+  Vm vm = Vm.create(disableConsoleInRelease: false);
+  String code = options['code'];
+  applyVmOptions(vm, options);
+  try {
+    vm.evalCode(code, filename: '<setTimeout_test>');
+    await Future.delayed(Duration(milliseconds: options['interval']??2000));
+    print('should print ${options["expected"]??"nothing."}');
   } finally {
     vm.dispose();
   }
