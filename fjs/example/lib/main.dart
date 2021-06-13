@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fjs/vm.dart';
 import 'module/http.dart';
+import 'multiple_example.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -93,6 +94,10 @@ class _FlutterJsHomeScreenState extends State<FlutterJsHomeScreen> {
                   child: const Text('HTTP Module'),
                   onPressed: () => Navigator.of(context).push(PageRouteBuilder(pageBuilder: (ctx, _, __) => HttpModuleExample())),
                 ),
+                ElevatedButton(
+                  child: const Text('Multiple'),
+                  onPressed: () => Navigator.of(context).push(PageRouteBuilder(pageBuilder: (ctx, _, __) => MultipleVmExample())),
+                )
               ],
             ),
             TextField(
