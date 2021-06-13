@@ -122,8 +122,12 @@ class _FlutterJsHomeScreenState extends State<FlutterJsHomeScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.amber,
         child: Text('Eval', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),),
-        onPressed: () {
+        onPressed: () async {
+          vm.startEventLoop();
           dynamic result = evalJS();
+          if(result is Future) {
+            result = await result;
+          }
           if(result is String || result is bool || result is num || result is DateTime) {
             _jsResult = result.toString();
           } else {
@@ -133,6 +137,7 @@ class _FlutterJsHomeScreenState extends State<FlutterJsHomeScreen> {
               _jsResult = result.toString();
             }
           }
+          vm.stopEventLoop();
           setState(() {
           });
         },
