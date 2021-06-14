@@ -8,7 +8,7 @@ import 'package:test/test.dart';
 class GreetingModule extends FlutterJSModule {
   final String name = 'greeting';
   JSValuePointer? cache;
-  JSValuePointer resolve(Vm vm) {
+  JSValuePointer resolve(Vm vm, path) {
     if(vm is JavaScriptCoreVm) {
       return cache = cache ?? vm.newFunction(null, (args, {thisObj}) {
         return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
@@ -22,7 +22,7 @@ class AsyncGreetingModule extends FlutterJSModule {
   final String name = 'async_greeting';
 
   @override
-  JSValuePointer resolve(Vm vm) {
+  JSValuePointer resolve(Vm vm, path) {
     if(vm is JavaScriptCoreVm) {
       return vm.newPromise(Future.delayed(Duration(seconds: 2), () => vm.newFunction(null, (args, {thisObj}) {
         return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');

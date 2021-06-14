@@ -26,7 +26,7 @@ void _entryPoint(SendPort callerSendPort) {
     if(type == 'eval') {
       String code = msg[#code];
       Vm vm = Vm.create();
-      vm.registerModuleResolver('greeting', (Vm vm) {
+      vm.registerModuleResolver('greeting', (Vm vm, path) {
         return vm.newFunction('greeting', (args, {thisObj}) {
           int completerId = completerIncrement++;
           Completer<dynamic> completer = Completer();

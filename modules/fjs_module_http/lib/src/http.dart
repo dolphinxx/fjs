@@ -40,7 +40,7 @@ class FlutterJSHttpModule implements FlutterJSModule{
 
   final String name = 'http';
 
-  JSValuePointer resolve(Vm vm) {
+  JSValuePointer resolve(Vm vm, path) {
     return vm.dartToJS({
       'send': vm.newFunction('send', (args, {thisObj}) {
         dynamic args0 = vm.jsToDart(args[0]);

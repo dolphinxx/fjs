@@ -5,5 +5,8 @@ abstract class FlutterJSModule {
 
   void dispose() {}
 
-  JSValuePointer resolve(Vm vm);
+  /// Resolve [path] and return the corresponding module.
+  ///
+  /// For `require("crypto-js/aes"), the [path] is ["crypto-js", "aes"].
+  JSValuePointer resolve(Vm vm, List<String> path);
 }

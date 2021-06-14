@@ -11,7 +11,7 @@ import 'javascriptcore/vm.dart';
 import 'types.dart';
 export 'types.dart';
 
-typedef ModuleResolver = JSValuePointer Function(Vm vm);
+typedef ModuleResolver = JSValuePointer Function(Vm vm, List<String> path);
 
 abstract class Vm {
   /// Whether to reserve JS undefined using [DART_UNDEFINED].
@@ -122,12 +122,13 @@ abstract class Vm {
   Map<String, ModuleResolver> _moduleResolverMap = {};
   void _setupModuleResolver() {
     final requireFn = newFunction('require', (args, {thisObj}) {
-      String moduleName = jsToDart(args[0]);
+      List<String> path = jsToDart(args[0]).split('/');
+      String moduleName = path[0];
       if(_moduleMap.containsKey(moduleName)) {
-        return _moduleMap[moduleName]!.resolve(this);
+        return _moduleMap[moduleName]!.resolve(this, path);
       }
       if(_moduleResolverMap.containsKey(moduleName)) {
-        return _moduleResolverMap[moduleName]!(this);
+        return _moduleResolverMap[moduleName]!(this, path);
       }
       return $undefined;
     });
