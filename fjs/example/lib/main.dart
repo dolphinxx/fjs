@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:fjs_example/isolate.dart';
 import 'package:flutter/material.dart';
 import 'package:fjs/vm.dart';
 import 'module/http.dart';
@@ -58,23 +59,18 @@ class _FlutterJsHomeScreenState extends State<FlutterJsHomeScreen> {
 
   late TextEditingController editController;
 
-  final Vm vm = Vm.create(disableConsoleInRelease: false);
-
-  dynamic evalJS() {
-    return vm.jsToDart(vm.evalCode(editController.text));
-  }
-
   @override
   void initState() {
     editController = TextEditingController(text: _code);
+    initIsolate();
     super.initState();
   }
 
   @override
   dispose() {
-    super.dispose();
     editController.dispose();
-    vm.dispose();
+    disposeIsolate();
+    super.dispose();
   }
 
   @override
@@ -97,7 +93,7 @@ class _FlutterJsHomeScreenState extends State<FlutterJsHomeScreen> {
                 ElevatedButton(
                   child: const Text('Multiple'),
                   onPressed: () => Navigator.of(context).push(PageRouteBuilder(pageBuilder: (ctx, _, __) => MultipleVmExample())),
-                )
+                ),
               ],
             ),
             TextField(
@@ -124,29 +120,61 @@ class _FlutterJsHomeScreenState extends State<FlutterJsHomeScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.amber,
-        child: Text('Eval', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),),
-        onPressed: () async {
-          vm.startEventLoop();
-          dynamic result = evalJS();
-          if(result is Future) {
-            result = await result;
-          }
-          if(result is String || result is bool || result is num || result is DateTime) {
-            _jsResult = result.toString();
-          } else {
-            try {
-              _jsResult = JsonEncoder.withIndent('  ').convert(result);
-            } catch (_) {
-              _jsResult = result.toString();
-            }
-          }
-          vm.stopEventLoop();
-          setState(() {
-          });
-        },
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            backgroundColor: Colors.amber,
+            child: Text('Eval', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),),
+            onPressed: () async {
+              _jsResult = '${(await evalCode(editController.text))}';
+              setState(() {
+              });
+            },
+          ),
+          const Padding(padding: EdgeInsets.only(top: 6),),
+          FloatingActionButton(
+            backgroundColor: Colors.amber,
+            child: Text('Isolate', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),),
+            onPressed: () async {
+              _jsResult = '${(await evalInIsolate(editController.text))}';
+              setState(() {
+              });
+            },
+          ),
+        ],
       ),
     );
+  }
+
+  Future evalCode(String code) async {
+    final Vm vm = Vm.create(disableConsoleInRelease: false);
+    try {
+      vm.startEventLoop();
+      dynamic result = vm.jsToDart(vm.evalCode(code));;
+      if(result is Future) {
+        result = await result;
+      }
+      if(!(result is String || result is bool || result is num || result is DateTime)) {
+        try {
+          return JsonEncoder.withIndent('  ').convert(result);
+        } catch (_) {
+          return result.toString();
+        }
+      } else {
+        return result.toString();
+      }
+    } finally {
+      vm.dispose();
+    }
+  }
+
+  Future evalInIsolate(String code) async {
+    try {
+      dynamic result = await invokeInIsolate(code);
+      return result?.toString();
+    } finally {
+
+    }
   }
 }

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
 
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:flutter_driver/driver_extension.dart';
 import 'package:fjs/error.dart';
@@ -10,6 +11,7 @@ import 'package:fjs/quickjs/qjs_ffi.dart';
 import 'package:fjs/quickjs/vm.dart';
 import 'package:fjs/vm.dart';
 import '../lib/driver_main.dart' as app;
+import '../lib/isolate.dart';
 
 void main() {
   enableFlutterDriverExtension(handler: (_) async {
@@ -77,6 +79,14 @@ Future<void> runTest(options) async {
   }
   if(options['group'] == 'setTimeout') {
     await testSetTimeout(options);
+    return;
+  }
+  if(options['group'] == 'compute') {
+    await testCompute(options);
+    return;
+  }
+  if(options['group'] == 'isolate') {
+    await testIsolate(options);
     return;
   }
 }
@@ -176,5 +186,36 @@ Future<void> testSetTimeout(Map options) async {
     print('should print ${options["expected"]??"nothing."}');
   } finally {
     vm.dispose();
+  }
+}
+
+Future<void> testCompute(Map options) async {
+  String code = options['code'];
+  var actual = await compute(computeCallback, code);
+  var dartVal = options['dart'];
+  if(!DeepCollectionEquality().equals(actual, dartVal)) {
+    throw 'expected: $dartVal, actual: $actual';
+  }
+}
+
+Future<dynamic> computeCallback(String code) async {
+  Vm vm = Vm.create(reserveUndefined: false, constructDate: false);
+  vm.startEventLoop();
+  var result = vm.jsToDart(vm.evalCode(code));
+  if(result is Future) {
+    result = await result;
+  }
+  vm.dispose();
+  return result;
+}
+
+Future<void> testIsolate(Map options) async {
+  String code = options['code'];
+  var dartVal = options['dart'];
+  await initIsolate();
+  var actual = await invokeInIsolate(code);
+  disposeIsolate();
+  if(!DeepCollectionEquality().equals(actual, dartVal)) {
+    throw 'expected: $dartVal, actual: $actual';
   }
 }
