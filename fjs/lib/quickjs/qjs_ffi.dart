@@ -442,46 +442,46 @@ final JS_HasProperty = dylib.lookupFunction<
 >('QJS_HasProperty');
 
 abstract class JSHandyType {
-  static const String js_unknown = 'unknown';
-  static const String js_uninitialized = 'uninitialized';
-  static const String js_undefined = 'undefined';
-  static const String js_null = 'null';
+  static const int js_unknown = 0/*'unknown'*/;
+  static const int js_uninitialized = -1/*'uninitialized'*/;
+  static const int js_undefined = 1/*'undefined'*/;
+  static const int js_null = 2/*'null'*/;
   /// primitive bool
-  static const String js_boolean = 'boolean';
+  static const int js_boolean = 3/*'boolean'*/;
   /// primitive string
-  static const String js_string = 'string';
-  static const String js_Symbol = 'Symbol';
-  static const String js_function = 'function';
-  static const String js_int = 'int';
+  static const int js_string = 4/*'string'*/;
+  static const int js_Symbol = 5/*'Symbol'*/;
+  static const int js_function = 6/*'function'*/;
+  static const int js_int = 7/*'int'*/;
   /// **Note:** `1.0` is treated int in QuickJS.
-  static const String js_float = 'float';
-  static const String js_BigInt = 'BigInt';
-  static const String js_BigFloat = 'BigFloat';
-  static const String js_BigDecimal = 'BigDecimal';
-  static const String js_Promise = 'Promise';
-  static const String js_ArrayBuffer = 'ArrayBuffer';
-  static const String js_SharedArrayBuffer = 'SharedArrayBuffer';
-  static const String js_Date = 'Date';
+  static const int js_float = 8/*'float'*/;
+  static const int js_BigInt = 9/*'BigInt'*/;
+  static const int js_BigFloat = 10/*'BigFloat'*/;
+  static const int js_BigDecimal = 11/*'BigDecimal'*/;
+  static const int js_Promise = 12/*'Promise'*/;
+  static const int js_ArrayBuffer = 13/*'ArrayBuffer'*/;
+  static const int js_SharedArrayBuffer = 14/*'SharedArrayBuffer'*/;
+  static const int js_Date = 15/*'Date'*/;
   /// object instanceof String
-  static const String js_String = 'String';
+  static const int js_String = 16/*'String'*/;
   /// object instanceof Number
-  static const String js_Number = 'Number';
+  static const int js_Number = 17/*'Number'*/;
   /// object instanceof Boolean
-  static const String js_Boolean = 'Boolean';
-  static const String js_Error = 'Error';
-  static const String js_RegExp = 'RegExp';
-  static const String js_Array = 'Array';
+  static const int js_Boolean = 18/*'Boolean'*/;
+  static const int js_Error = 19/*'Error'*/;
+  static const int js_RegExp = 20/*'RegExp'*/;
+  static const int js_Array = 21/*'Array'*/;
   /// all other object values not listed above.
-  static const String js_object = 'object';
+  static const int js_object = 22/*'object'*/;
   /// True if a dart `int` is enough to present [type].
-  static bool isIntLike(String type) {
+  static bool isIntLike(int type) {
     return type == js_int || type == js_BigInt;
   }
   /// True if a dart `double` is required to present [type].
-  static bool isDoubleLike(String type) {
+  static bool isDoubleLike(int type) {
     return type == js_float || type == js_BigFloat || type == js_BigDecimal;
   }
-  static bool isObject(String type) {
+  static bool isObject(int type) {
     return type == js_Promise
         || type == js_ArrayBuffer
         || type == js_SharedArrayBuffer
@@ -497,10 +497,10 @@ abstract class JSHandyType {
   }
 }
 
-/// const char* QJS_HandyTypeof(JSContext *ctx, JSValueConst *value)
+/// int8_t QJS_HandyTypeof(JSContext *ctx, JSValueConst *value)
 final JS_HandyTypeof = dylib.lookupFunction<
-  Pointer<Utf8> Function(JSContextPointer, JSValueConstPointer),
-  Pointer<Utf8> Function(JSContextPointer ctx, JSValueConstPointer obj)
+  Int8 Function(JSContextPointer, JSValueConstPointer),
+  int Function(JSContextPointer ctx, JSValueConstPointer obj)
 >('QJS_HandyTypeof');
 
 /// JSValue* QJS_NewDate(JSContext* ctx, int64_t timestamp)

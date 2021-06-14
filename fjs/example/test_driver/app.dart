@@ -36,7 +36,7 @@ void testQuickJSBoolVal() {
     print('true: ${v.$true.address}, false: ${v.$false.address}');
     print('bool false: ${JS_ToBool(v.ctx, vm.$false)}');
     print('bool true: ${JS_ToBool(v.ctx, vm.$true)}');
-    print('handyTypeof ${JS_HandyTypeof(v.ctx, v.$false).toDartString()}');
+    print('handyTypeof ${JS_HandyTypeof(v.ctx, v.$false)}');
     final ptr = JS_NewBool(v.ctx, 0);
     final val = JS_ToBool(v.ctx, ptr);
     JS_FreeValuePointer(v.ctx, ptr);

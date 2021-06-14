@@ -762,7 +762,7 @@ class QuickJSVm extends Vm implements Disposable {
     if(value == $false) {
       return false;
     }
-    final String type = JS_HandyTypeof(ctx, value).toDartString();
+    final int type = JS_HandyTypeof(ctx, value);
     if (type == JSHandyType.js_Error) {
       return extractError(value, false);
     }

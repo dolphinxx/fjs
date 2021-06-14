@@ -668,81 +668,81 @@ void QJS_TestStringArg(const char *string) {
       JS_CLASS_INIT_COUNT, /* last entry for predefined classes */
   } ClassID;
 
-  const char* QJS_HandyTypeof(JSContext *ctx, JSValueConst *value) {
+  int8_t QJS_HandyTypeof(JSContext *ctx, JSValueConst *value) {
     uint32_t tag = JS_VALUE_GET_TAG(*value);
     if(JS_IsUninitialized(*value)) {
-      return "uninitialized";
+      return -1/*"uninitialized"*/;
     }
     if(tag == JS_TAG_UNDEFINED) {
-      return "undefined";
+      return 1/*"undefined"*/;
     }
     if (tag == JS_TAG_NULL) {
-      return "null";
+      return 2/*"null"*/;
     }
     if(tag == JS_TAG_BOOL) {
-      return "boolean";
+      return 3/*"boolean"*/;
     }
     if(tag == JS_TAG_STRING) {
-      return "string";
+      return 4/*"string"*/;
     }
     if(tag == JS_TAG_SYMBOL) {
-      return "Symbol";
+      return 5/*"Symbol"*/;
     }
     if(JS_IsFunction(ctx, *value)) {
-      return "function";
+      return 6/*"function"*/;
     }
 
 
     if(tag == JS_TAG_INT) {
-      return "int";
+      return 7/*"int"*/;
     }
     if(JS_TAG_IS_FLOAT64(tag)) {
-      return "float";
+      return 8/*"float"*/;
     }
     if (tag == JS_TAG_BIG_INT) {
-      return "BigInt";
+      return 9/*"BigInt"*/;
     }
     if(tag == JS_TAG_BIG_FLOAT) {
-      return "BigFloat";
+      return 10/*"BigFloat"*/;
     }
     if(tag == JS_TAG_BIG_DECIMAL) {
-      return "BigDecimal";
+      return 11/*"BigDecimal"*/;
     }
     if(tag == JS_TAG_OBJECT) {
       JSClassID classID = JS_GetClassID(*value);
       if(classID == JS_CLASS_PROMISE) {
-        return "Promise";
+        return 12/*"Promise"*/;
       }
       if (classID == JS_CLASS_ARRAY_BUFFER) {
-        return "ArrayBuffer";
+        return 13/*"ArrayBuffer"*/;
       }
       if (classID == JS_CLASS_SHARED_ARRAY_BUFFER) {
-          return "SharedArrayBuffer";
+          return 14/*"SharedArrayBuffer"*/;
       }
       if (classID == JS_CLASS_DATE) {
-          return "Date";
+          return 15/*"Date"*/;
       }
       if (classID == JS_CLASS_STRING) {
-          return "String";
+          return 16/*"String"*/;
       }
       if (classID == JS_CLASS_NUMBER) {
-          return "Number";
+          return 17/*"Number"*/;
       }
       if (classID == JS_CLASS_BOOLEAN) {
-          return "Boolean";
+          return 18/*"Boolean"*/;
       }
       if (classID == JS_CLASS_ERROR) {
-          return "Error";
+          return 19/*"Error"*/;
       }
       if (classID == JS_CLASS_REGEXP) {
-          return "RegExp";
+          return 20/*"RegExp"*/;
       }
       if(JS_IsArray(ctx, *value)) {
-        return "Array";
+        return 21/*"Array"*/;
       }
-      return "object";
+      return 22/*"object"*/;
     }
-    return "unknown";
+    return 0/*"unknown"*/;
   }
 
   JSValue* QJS_NewDate(JSContext* ctx, int64_t timestamp) {
@@ -839,6 +839,6 @@ void QJS_TestStringArg(const char *string) {
 
   const char* hello_world() {
       printf("C: Hello World\n");
-	  return "Hello World!";
+      return "Hello World!";
   }
 }
