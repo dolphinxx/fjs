@@ -21,8 +21,12 @@ abstract class Vm {
   /// Whether to auto construct DateTime for JS Date values.
   bool constructDate = true;
 
-  /// Disable Console.log when `kRelease == true`
+  /// Disable Console.log when `kReleaseMode == true`
   bool disableConsoleInRelease = true;
+
+  /// Hide stackTrace in [newError] when `kReleaseMode == true`
+  bool hideStackInRelease = true;
+
   /// Set to true to use JS_ArrayBufferCopy to construct an ArrayBuffer.
   bool arrayBufferCopy = false;
 
@@ -31,11 +35,13 @@ abstract class Vm {
     bool? jsonSerializeObject,
     bool? constructDate,
     bool? disableConsoleInRelease,
+    bool? hideStackInRelease,
     bool? arrayBufferCopy,
   })  : reserveUndefined = reserveUndefined ?? false,
         jsonSerializeObject = jsonSerializeObject ?? false,
         constructDate = constructDate ?? true,
         disableConsoleInRelease = disableConsoleInRelease ?? true,
+        hideStackInRelease = hideStackInRelease ?? true,
         arrayBufferCopy = arrayBufferCopy ?? false;
 
   factory Vm.QuickJS({
@@ -43,6 +49,7 @@ abstract class Vm {
     bool? jsonSerializeObject,
     bool? constructDate,
     bool? disableConsoleInRelease,
+    bool? hideStackInRelease,
     bool? arrayBufferCopy,
   }) {
     return QuickJSVm(
@@ -50,6 +57,7 @@ abstract class Vm {
       jsonSerializeObject: jsonSerializeObject,
       constructDate: constructDate,
       disableConsoleInRelease: disableConsoleInRelease,
+      hideStackInRelease: hideStackInRelease,
       arrayBufferCopy: arrayBufferCopy,
     );
   }
@@ -59,12 +67,15 @@ abstract class Vm {
     bool? jsonSerializeObject,
     bool? constructDate,
     bool? disableConsoleInRelease,
+    bool? hideStackInRelease,
   }) {
     return JavaScriptCoreVm(
-        reserveUndefined: reserveUndefined,
-        jsonSerializeObject: jsonSerializeObject,
-        constructDate: constructDate,
-        disableConsoleInRelease: disableConsoleInRelease,);
+      reserveUndefined: reserveUndefined,
+      jsonSerializeObject: jsonSerializeObject,
+      constructDate: constructDate,
+      disableConsoleInRelease: disableConsoleInRelease,
+      hideStackInRelease: hideStackInRelease,
+    );
   }
 
   factory Vm.create({
@@ -72,6 +83,7 @@ abstract class Vm {
     bool? jsonSerializeObject,
     bool? constructDate,
     bool? disableConsoleInRelease,
+    bool? hideStackInRelease,
     bool? arrayBufferCopy,
   }) {
     if (Platform.isIOS || Platform.isMacOS) {
@@ -80,6 +92,7 @@ abstract class Vm {
         jsonSerializeObject: jsonSerializeObject,
         constructDate: constructDate,
         disableConsoleInRelease: disableConsoleInRelease,
+        hideStackInRelease: hideStackInRelease,
       );
     }
     return Vm.QuickJS(
@@ -87,6 +100,7 @@ abstract class Vm {
       jsonSerializeObject: jsonSerializeObject,
       constructDate: constructDate,
       disableConsoleInRelease: disableConsoleInRelease,
+      hideStackInRelease: hideStackInRelease,
       arrayBufferCopy: arrayBufferCopy,
     );
   }

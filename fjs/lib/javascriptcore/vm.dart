@@ -4,6 +4,7 @@ import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
+import 'package:fjs/quickjs/qjs_ffi.dart';
 import 'package:flutter/foundation.dart';
 import '../error.dart';
 import '../lifetime.dart';
@@ -92,11 +93,13 @@ class JavaScriptCoreVm extends Vm implements Disposable {
     bool? jsonSerializeObject,
     bool? constructDate,
     bool? disableConsoleInRelease,
+    bool? hideStackInRelease,
   }) : super(
           reserveUndefined: reserveUndefined,
           jsonSerializeObject: jsonSerializeObject,
           constructDate: constructDate,
           disableConsoleInRelease: disableConsoleInRelease,
+          hideStackInRelease: hideStackInRelease,
         ) {
     ctx = jSGlobalContextCreate(nullptr);
     _scope.manage(Lifetime<JSContextRef>(ctx, (_) {
@@ -400,9 +403,13 @@ return 0
   JSObjectRef newError(dynamic error) {
     String? name;
     String? message;
+    String? stack;
     if (error is JSError) {
       message = error.message;
       name = error.name;
+      if(!hideStackInRelease || !kReleaseMode) {
+        stack = error.stackTrace.toString();
+      }
     } else {
       message = error.toString();
     }
@@ -414,6 +421,17 @@ return 0
     if (name != null) {
       final _k = newStringRef('name');
       final _v = newString(name);
+      runWithExceptionHandle(
+        (exception) => jSObjectSetProperty(ctx, ptr, _k, _v,
+            JSPropertyAttributes.kJSPropertyAttributeNone, exception),
+        () {
+          jSStringRelease(_k);
+        },
+      );
+    }
+    if (stack != null) {
+      final _k = newStringRef('stack');
+      final _v = newString(stack);
       runWithExceptionHandle(
         (exception) => jSObjectSetProperty(ctx, ptr, _k, _v,
             JSPropertyAttributes.kJSPropertyAttributeNone, exception),
@@ -762,17 +780,26 @@ return 0
 
   JSError? resolveException(JSValueRefRef exception) {
     if(exception[0] != nullptr/* && jSValueIsObject(ctx, exception[0]) == 1*/) {
-      final ptr = jSValueToStringCopy(ctx, exception[0], nullptr);
-      calloc.free(exception);
-      final _ptr = jSStringGetCharactersPtr(ptr);
-      if (_ptr == nullptr) {
-        return null;
+      int type = handyTypeof(exception[0]);
+      if(type == JSHandyType.js_Error) {
+        JSValueRef objPtr = jSValueToObject(ctx, exception[0], nullptr);
+        String message = jsToDart(getProperty(objPtr, 'message'));
+        String? stack = jsToDart(getProperty(objPtr, 'stack'));
+        String? name = jsToDart(getProperty(objPtr, 'name'));
+        return JSError(message, stack == null ? null : StackTrace.fromString(stack))..name = name;
+      } else {
+        final ptr = jSValueToStringCopy(ctx, exception[0], nullptr);
+        calloc.free(exception);
+        final _ptr = jSStringGetCharactersPtr(ptr);
+        if (_ptr == nullptr) {
+          return null;
+        }
+        int length = jSStringGetLength(ptr);
+        final e = String.fromCharCodes(Uint16List.view(
+            _ptr.cast<Uint16>().asTypedList(length).buffer, 0, length));
+        jSStringRelease(ptr);
+        return JSError(e);
       }
-      int length = jSStringGetLength(ptr);
-      final e = String.fromCharCodes(Uint16List.view(
-          _ptr.cast<Uint16>().asTypedList(length).buffer, 0, length));
-      jSStringRelease(ptr);
-      return JSError(e);
     }
     calloc.free(exception);
     return null;
@@ -843,7 +870,7 @@ return 0
   var _fnNextId = 0;
   var _fnMap = new Map<int, JSToDartFunction>();
 
-  JSValuePointer? cToHostCallbackFunction(JSContextRef ctx, JSObjectRef thisObj, int argc, JSValueRefArray argv, JSValueRefRef exception) {
+  JSValuePointer cToHostCallbackFunction(JSContextRef ctx, JSObjectRef thisObj, int argc, JSValueRefArray argv, JSValueRefRef exception) {
     try {
       if(argc == 0) {
         throw 'cToHostCallbackFunction call missing fnId';
@@ -858,7 +885,13 @@ return 0
         args.add(argv[i]);
       }
       return Function.apply(fn, [args], {#thisObj: thisObj});
-    } catch(e) {
+    } catch(error, stackTrace) {
+      JSError e;
+      if(error is JSError) {
+        e = error;
+      } else {
+        e = JSError(error.toString(), error is Error ? error.stackTrace : stackTrace);
+      }
       exception[0] = newError(e);
       return $undefined;
     }

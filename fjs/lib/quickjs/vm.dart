@@ -67,12 +67,14 @@ class QuickJSVm extends Vm implements Disposable {
     bool? jsonSerializeObject,
     bool? constructDate,
     bool? disableConsoleInRelease,
+    bool? hideStackInRelease,
     bool? arrayBufferCopy,
   }) : super(
     reserveUndefined: reserveUndefined,
     jsonSerializeObject: jsonSerializeObject,
     constructDate: constructDate,
     disableConsoleInRelease: disableConsoleInRelease,
+    hideStackInRelease: hideStackInRelease,
     arrayBufferCopy: arrayBufferCopy,
   ) {
     if (!_initialized) {
@@ -343,10 +345,13 @@ class QuickJSVm extends Vm implements Disposable {
   JSValuePointer newError(dynamic error) {
     String? name;
     String? message;
+    String? stack;
     if (error is JSError) {
       message = error.message;
       name = error.name;
-      // Disable stackTrace due to security leak concerns
+      if(!hideStackInRelease || !kReleaseMode) {
+        stack = error.stackTrace.toString();
+      }
     } else {
       message = error.toString();
     }
@@ -354,6 +359,13 @@ class QuickJSVm extends Vm implements Disposable {
     if (name != null) {
       final _k = newString('name');
       final _v = newString(name);
+      JS_SetProp(ctx, ptr, _k, _v);
+      _freeJSValue(_k);
+      _freeJSValue(_v);
+    }
+    if (stack != null) {
+      final _k = newString('stack');
+      final _v = newString(stack);
       JS_SetProp(ctx, ptr, _k, _v);
       _freeJSValue(_k);
       _freeJSValue(_v);
@@ -1108,8 +1120,14 @@ class QuickJSVm extends Vm implements Disposable {
         _heapValueHandle(result);
         ownedResultPtr = JS_DupValuePointer(ctx, result);
       }
-    } catch (error) {
-      ownedResultPtr = consumeAndFree(newError(error), (errorHandle) => JS_Throw(ctx, errorHandle));
+    } catch (error, stackTrace) {
+      JSError e;
+      if(error is JSError) {
+        e = error;
+      } else {
+        e = JSError(error.toString(), error is Error ? error.stackTrace : stackTrace);
+      }
+      ownedResultPtr = consumeAndFree(newError(e), (errorHandle) => JS_Throw(ctx, errorHandle));
     }/* finally {
       JS_FreeValuePointer(ctx, this_ptr);
       argHandles.forEach((_) => JS_FreeValuePointer(ctx, _));
