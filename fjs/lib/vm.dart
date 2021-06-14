@@ -99,18 +99,23 @@ abstract class Vm {
 
   @mustCallSuper
   void dispose() {
+    _moduleResolverMap.clear();
     _moduleMap.values.forEach((element) => element.dispose());
     _moduleMap.clear();
   }
 
   Map<String, FlutterJSModule> _moduleMap = {};
+  Map<String, ModuleResolver> _moduleResolverMap = {};
   void _setupModuleResolver() {
     final requireFn = newFunction('require', (args, {thisObj}) {
       String moduleName = jsToDart(args[0]);
-      if(!_moduleMap.containsKey(moduleName)) {
-        return $undefined;
+      if(_moduleMap.containsKey(moduleName)) {
+        return _moduleMap[moduleName]!.resolve(this);
       }
-      return _moduleMap[moduleName]!.resolve(this);
+      if(_moduleResolverMap.containsKey(moduleName)) {
+        return _moduleResolverMap[moduleName]!(this);
+      }
+      return $undefined;
     });
     setProperty(global, 'require', requireFn);
   }
@@ -121,7 +126,17 @@ abstract class Vm {
   ///
   /// If you do need to cache the result of `require` call, have a look at `module_loader_test.dart`.
   void registerModule(FlutterJSModule module) {
+    if(_moduleMap.containsKey(module.name)) {
+      if(_moduleMap[module.name] == module) {
+        return;
+      }
+      _moduleMap[module.name]?.dispose();
+    }
     _moduleMap[module.name] = module;
+  }
+
+  void registerModuleResolver(String name, ModuleResolver resolver) {
+    _moduleResolverMap[name] = resolver;
   }
 
   /// [`undefined`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined)
