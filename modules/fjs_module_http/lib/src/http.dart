@@ -14,21 +14,27 @@ class FlutterJSHttpModule implements FlutterJSModule{
   final Map<int, AbortController> _abortControllers = {};
   late final HttpClient client;
   CacheProvider? cacheProvider;
+  Map<String, dynamic>? httpOptions;
+  Map<String, dynamic>? clientOptions;
   RequestInterceptor? requestInterceptor;
   ResponseInterceptor? responseInterceptor;
   BeforeSendInterceptor? beforeSendInterceptor;
   bool quiet;
   int _requestNextId = 1;
 
-  /// Provider a [httpClientProvider] to have customization of `HttpClient` instance creation.
+  /// Provide a [httpClientProvider] to have customization of `HttpClient` instance creation.
   ///
   /// If your desired charsets are not appear in `Encoding`, provider them through [encodingMap].
   ///
   /// Only fatal messages are printed if [quiet] is true.
+  ///
+  /// Use [httpOptions] and [clientOptions] to apply default settings.
   FlutterJSHttpModule({
     HttpClient httpClientProvider()?,
     Map<String, Encoding>? encodingMap,
     bool? quiet,
+    this.httpOptions,
+    this.clientOptions,
     this.cacheProvider,
     this.beforeSendInterceptor,
     this.requestInterceptor,
@@ -84,6 +90,29 @@ class FlutterJSHttpModule implements FlutterJSModule{
   }
 
   Future perform(int requestId, Map httpOptions, Map clientOptions) async {
+    if(this.clientOptions != null) {
+      this.clientOptions!.forEach((key, value) {
+        if(!clientOptions.containsKey(key)) {
+          clientOptions[key] = value;
+        }
+      });
+    }
+    if(this.httpOptions != null) {
+      this.httpOptions!.forEach((key, value) {
+        if(key == 'headers') {
+          Map headers = httpOptions.putIfAbsent(key, () => {});
+          if(clientOptions['preventDefaultHeaders'] != true) {
+            (value as Map).forEach((k, v) {
+              headers.putIfAbsent(k, () => v);
+            });
+          }
+        } else {
+          if(!httpOptions.containsKey(key)) {
+            httpOptions[key] = value;
+          }
+        }
+      });
+    }
     AbortController _abortController = AbortController();
 
     _abortControllers[requestId] = _abortController;

@@ -90,6 +90,11 @@ type FlutterJSHttpModuleClientOptions = {
    * If this value ends with a `!`, then the encoding in response headers will be ignored.
    */
   encoding?: string;
+  /**
+   * Prevent default headers if any.
+   * Default false.
+   */
+  preventDefaultHeaders?: boolean;
 };
 type FlutterJSHttpModuleResponse = {
   headers:Record<string, string>;
@@ -109,9 +114,10 @@ type FlutterJSHttpModuleAbortController = {
    * Abort the attached request
    */
   abort():void;
-}
-type FlutterJSHttpModuleHttp = {
-  send(httpOptions:FlutterJSExtensionHttpOptions|string, abortController?: AbortController): Promise<FlutterJSExtensionResponse|FlutterJSExtensionErrorResponse>;
-  send(httpOptions:FlutterJSExtensionHttpOptions|string, clientOptions?:FlutterJSExtensionClientOptions, abortController?: AbortController): Promise<FlutterJSExtensionResponse|FlutterJSExtensionErrorResponse>;
-  AbortController: FlutterJSHttpModuleAbortController;
+};
+
+declare module 'http' {
+  function send(httpOptions:FlutterJSExtensionHttpOptions|string, abortController?: AbortController): Promise<FlutterJSExtensionResponse|FlutterJSExtensionErrorResponse>;
+  function send(httpOptions:FlutterJSExtensionHttpOptions|string, clientOptions?:FlutterJSExtensionClientOptions, abortController?: AbortController): Promise<FlutterJSExtensionResponse|FlutterJSExtensionErrorResponse>;
+  const AbortController: FlutterJSHttpModuleAbortController;
 };
