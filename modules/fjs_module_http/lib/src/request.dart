@@ -6,6 +6,10 @@ import 'cache.dart';
 import 'response.dart';
 import 'media_type.dart';
 
+/// You can modify [httpOptions] or [clientOptions] before a real request is sent.
+///
+/// eg: replace the `uri` in [httpOptions] to a mock web server.
+typedef BeforeSendInterceptor = void Function(Map httpOptions, Map clientOptions);
 typedef RequestInterceptor = HttpClientRequest Function(HttpClientRequest request, Map httpOptions, Map clientOptions);
 typedef ResponseInterceptor = HttpClientResponse Function(HttpClientResponse response, Map httpOptions, Map clientOptions);
 
@@ -85,7 +89,10 @@ String encodeBody(dynamic body, MediaType? contentType) {
   return body.toString();
 }
 
-Future<NativeResponse> send(HttpClient client, Map httpOptions, Map clientOptions, {CacheProvider? cacheProvider, required Map<String, Encoding> encodingMap, AbortController? abortController, RequestInterceptor? requestInterceptor, ResponseInterceptor? responseInterceptor}) async {
+Future<NativeResponse> send(HttpClient client, Map httpOptions, Map clientOptions, {CacheProvider? cacheProvider, required Map<String, Encoding> encodingMap, AbortController? abortController, BeforeSendInterceptor? beforeSendInterceptor, RequestInterceptor? requestInterceptor, ResponseInterceptor? responseInterceptor}) async {
+  if(beforeSendInterceptor != null) {
+    beforeSendInterceptor(httpOptions, clientOptions);
+  }
   Uri uri = Uri.parse(httpOptions['url']);
   String method = (httpOptions['method'] as String?)?.toUpperCase()??'GET';
   Map<String, String> requestHeaders = createHeaders(httpOptions['headers']);

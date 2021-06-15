@@ -16,6 +16,7 @@ class FlutterJSHttpModule implements FlutterJSModule{
   CacheProvider? cacheProvider;
   RequestInterceptor? requestInterceptor;
   ResponseInterceptor? responseInterceptor;
+  BeforeSendInterceptor? beforeSendInterceptor;
   bool quiet;
   int _requestNextId = 1;
 
@@ -29,6 +30,7 @@ class FlutterJSHttpModule implements FlutterJSModule{
     Map<String, Encoding>? encodingMap,
     bool? quiet,
     this.cacheProvider,
+    this.beforeSendInterceptor,
     this.requestInterceptor,
     this.responseInterceptor,
   }):quiet = quiet??true {
@@ -86,7 +88,7 @@ class FlutterJSHttpModule implements FlutterJSModule{
 
     _abortControllers[requestId] = _abortController;
     try {
-      return await send(client, httpOptions, clientOptions, cacheProvider: cacheProvider, encodingMap: _encodingMap, abortController: _abortController, requestInterceptor: requestInterceptor, responseInterceptor: responseInterceptor);
+      return await send(client, httpOptions, clientOptions, cacheProvider: cacheProvider, encodingMap: _encodingMap, abortController: _abortController, beforeSendInterceptor: beforeSendInterceptor, requestInterceptor: requestInterceptor, responseInterceptor: responseInterceptor);
     } catch(err, stackTrace) {
       if(err is HttpException) {
         return {"statusCode": err is AbortException ? 308 : 0, "reasonPhrase": err.message};
