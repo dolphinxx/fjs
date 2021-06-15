@@ -95,6 +95,10 @@ type FlutterJSHttpModuleClientOptions = {
    * Default false.
    */
   preventDefaultHeaders?: boolean;
+  /**
+   * Custom options
+   */
+  [x:string]:any;
 };
 type FlutterJSHttpModuleResponse = {
   headers:Record<string, string>;
