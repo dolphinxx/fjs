@@ -469,7 +469,7 @@ return 0
     ));
     if(future != null) {
       future.then((_) => promiseWrapper.resolve(dartToJS(_)))
-          .catchError((_) => promiseWrapper.reject(dartToJS(_)));
+          .catchError((e, StackTrace? s) => promiseWrapper.reject(dartToJS(JSError.wrap(e, s??StackTrace.current))));
     }
     return promiseWrapper;
   }
@@ -686,8 +686,7 @@ return 0
       });
       final onError = newFunction(null, (args, {thisObj}) {
         var error = jsToDart(args[0]);
-        completer.completeError(
-            error is JSError ? error : JSError(error.toString()));
+        completer.completeError(JSError.wrap(error));
       });
       callFunction(thenPtr, value, [onFulfilled, onError]);
       // complete when the promise is resolved/rejected.
@@ -886,13 +885,7 @@ return 0
       }
       return Function.apply(fn, [args], {#thisObj: thisObj});
     } catch(error, stackTrace) {
-      JSError e;
-      if(error is JSError) {
-        e = error;
-      } else {
-        e = JSError(error.toString(), error is Error ? error.stackTrace : stackTrace);
-      }
-      exception[0] = newError(e);
+      exception[0] = newError(JSError.wrap(error, stackTrace));
       return $undefined;
     }
   }
@@ -906,7 +899,7 @@ return 0
       JSValueRefRef exception) {
     final vm = _vmMap[ctx];
     if(vm == null) {
-      throw new JSError(
+      throw JSError(
           'JavaScriptCoreVm(ctx = ${ctx}) not found for C function call "${function}"');
     }
     return vm.cToHostCallbackFunction(ctx, thisObject, argumentCount, arguments, exception);

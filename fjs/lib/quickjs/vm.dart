@@ -423,7 +423,7 @@ class QuickJSVm extends Vm implements Disposable {
       ));
       if(future != null) {
         future.then((_) => consumeAndFree(dartToJS(_), (ptr) => promiseWrapper.resolve(ptr)))
-            .catchError((_) => consumeAndFree(dartToJS(_), (ptr) => promiseWrapper.reject(ptr)));
+            .catchError((e, StackTrace? s) => consumeAndFree(dartToJS(JSError.wrap(e, s??StackTrace.current)), (ptr) => promiseWrapper.reject(ptr)));
       }
       return promiseWrapper;
     } finally {
@@ -988,7 +988,7 @@ class QuickJSVm extends Vm implements Disposable {
    */
   void setMemoryLimit(int limitBytes) {
     if (limitBytes < 0 && limitBytes != -1) {
-      throw new JSError(
+      throw JSError(
           'Cannot set memory limit to negative number. To unset, pass -1');
     }
 
@@ -1096,14 +1096,14 @@ class QuickJSVm extends Vm implements Disposable {
     fn_data,
   ) {
     if (ctx != ctx) {
-      throw new JSError(
+      throw JSError(
           'QuickJSVm instance received C -> JS call with mismatched ctx');
     }
 
     final fnId = JS_GetFloat64(ctx, fn_data).toInt();
     final fn = _fnMap[fnId];
     if (fn == null) {
-      throw new JSError('QuickJSVm had no callback with id $fnId');
+      throw JSError('QuickJSVm had no callback with id $fnId');
     }
 
     final thisHandle = this_ptr;
@@ -1121,13 +1121,7 @@ class QuickJSVm extends Vm implements Disposable {
         ownedResultPtr = JS_DupValuePointer(ctx, result);
       }
     } catch (error, stackTrace) {
-      JSError e;
-      if(error is JSError) {
-        e = error;
-      } else {
-        e = JSError(error.toString(), error is Error ? error.stackTrace : stackTrace);
-      }
-      ownedResultPtr = consumeAndFree(newError(e), (errorHandle) => JS_Throw(ctx, errorHandle));
+      ownedResultPtr = consumeAndFree(newError(JSError.wrap(error, stackTrace)), (errorHandle) => JS_Throw(ctx, errorHandle));
     }/* finally {
       JS_FreeValuePointer(ctx, this_ptr);
       argHandles.forEach((_) => JS_FreeValuePointer(ctx, _));
@@ -1140,13 +1134,13 @@ class QuickJSVm extends Vm implements Disposable {
   /// CToHostInterruptImplementation
   int cToHostInterrupt(rt) {
     if (rt != rt) {
-      throw new JSError(
+      throw JSError(
           'QuickJSVm instance received C -> JS interrupt with mismatched rt');
     }
 
     final fn = _interruptHandler;
     if (fn == null) {
-      throw new JSError('QuickJSVm had no interrupt handler');
+      throw JSError('QuickJSVm had no interrupt handler');
     }
 
     return Function.apply(fn, [this]) == true ? 1 : 0;
@@ -1213,7 +1207,7 @@ class QuickJSVm extends Vm implements Disposable {
     try {
       final vm = _vmMap[ctx];
       if (vm == null) {
-        throw new JSError(
+        throw JSError(
             'QuickJSVm(ctx = ${ctx}) not found for C function call "${fn_data_ptr}"');
       }
       return vm.cToHostCallbackFunction(ctx, this_ptr, argc, argv, fn_data_ptr);
@@ -1228,7 +1222,7 @@ class QuickJSVm extends Vm implements Disposable {
     try {
       final vm = _rtMap[rt];
       if (vm == null) {
-        throw new JSError('QuickJSVm(rt = ${rt}) not found for C interrupt');
+        throw JSError('QuickJSVm(rt = ${rt}) not found for C interrupt');
       }
       return vm.cToHostInterrupt(rt);
     } catch (error) {

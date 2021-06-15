@@ -24,6 +24,16 @@ class JSError extends Error{
       'stack': stackTrace.toString(),
     };
   }
+
+  static JSError wrap(e, [StackTrace? s]) {
+    if(e is JSError) {
+      return e;
+    }
+    if(e is Error) {
+      return JSError(e.toString(), e.stackTrace);
+    }
+    return JSError(e.toString(), s);
+  }
 }
 
 class DisposeError extends Error {
