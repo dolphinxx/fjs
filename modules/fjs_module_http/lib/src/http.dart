@@ -52,7 +52,7 @@ class FlutterJSHttpModule implements FlutterJSModule{
     return vm.dartToJS({
       'send': vm.newFunction('send', (args, {thisObj}) {
         dynamic args0 = vm.jsToDart(args[0]);
-        final httpOptions = args0 is String ? {'url': args0} : args0;
+        final httpOptions = args0 is String ? <String, dynamic>{'url': args0} : args0;
         JSValuePointer? abortControllerPtr;
         Map clientOptions;
         if(args.length == 1) {
@@ -68,7 +68,7 @@ class FlutterJSHttpModule implements FlutterJSModule{
           // assign requestId to abortController, so we can get it back from abort call.
           vm.setProperty(abortControllerPtr, 'requestId', vm.dartToJS(requestId));
         }
-        return vm.dartToJS(perform(requestId, httpOptions, clientOptions));
+        return vm.dartToJS(perform(requestId, httpOptions.cast<String, dynamic>(), clientOptions.cast<String, dynamic>()));
       }),
       'AbortController': vm.newConstructor((args, {thisObj}) {
         return vm.newObject({
@@ -89,7 +89,7 @@ class FlutterJSHttpModule implements FlutterJSModule{
     client.close();
   }
 
-  Future perform(int requestId, Map httpOptions, Map clientOptions) async {
+  Future perform(int requestId, Map<String, dynamic> httpOptions, Map<String, dynamic> clientOptions) async {
     if(this.clientOptions != null) {
       this.clientOptions!.forEach((key, value) {
         if(!clientOptions.containsKey(key)) {
@@ -100,9 +100,9 @@ class FlutterJSHttpModule implements FlutterJSModule{
     if(this.httpOptions != null) {
       this.httpOptions!.forEach((key, value) {
         if(key == 'headers') {
-          Map headers = httpOptions.putIfAbsent(key, () => {});
+          Map headers = httpOptions.putIfAbsent(key, () => Map<String, String>());
           if(clientOptions['preventDefaultHeaders'] != true) {
-            (value as Map).forEach((k, v) {
+            (value as Map<String, String>).forEach((k, v) {
               headers.putIfAbsent(k, () => v);
             });
           }
