@@ -132,12 +132,12 @@ abstract class Vm {
         path = [moduleName];
       } else {
         path = raw.split('/');
-        String lastPath = path.last;
+        String firstPath = path.first;
         // can have an optional version suffix
-        int versionPos = lastPath.indexOf('@');
+        int versionPos = firstPath.indexOf('@');
         if(versionPos > 0) {
-          version = lastPath.substring(versionPos + 1);
-          path[path.length - 1] = lastPath.substring(0, versionPos);
+          version = firstPath.substring(versionPos + 1);
+          path[0] = firstPath.substring(0, versionPos);
         }
         moduleName = path[0];
       }

@@ -11,12 +11,12 @@ void main() {
       path = [moduleName];
     } else {
       path = raw.split('/');
-      String lastPath = path.last;
+      String firstPath = path.first;
       // can have an optional version suffix
-      int versionPos = lastPath.indexOf('@');
+      int versionPos = firstPath.indexOf('@');
       if(versionPos > 0) {
-        version = lastPath.substring(versionPos + 1);
-        path[path.length - 1] = lastPath.substring(0, versionPos);
+        version = firstPath.substring(versionPos + 1);
+        path[0] = firstPath.substring(0, versionPos);
       }
       moduleName = path[0];
     }
@@ -35,7 +35,7 @@ void main() {
     expect(actual, ['a', ['a'], '1.1']);
   });
   test('has version multiple path', () {
-    List actual = parse('a/b/c@1.1');
+    List actual = parse('a@1.1/b/c');
     expect(actual, ['a', ['a', 'b', 'c'], '1.1']);
   });
   test('start with dot', () {
