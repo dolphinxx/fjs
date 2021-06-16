@@ -8,7 +8,7 @@ class FlutterJSGreetingModule extends FlutterJSModule {
   final String name = 'greeting';
 
   @override
-  JSValuePointer resolve(Vm vm, path) {
+  JSValuePointer resolve(Vm vm, List<String> path, String? version) {
     return vm.evalCode(source, filename: '<greeting_module.js>');
   }
 }

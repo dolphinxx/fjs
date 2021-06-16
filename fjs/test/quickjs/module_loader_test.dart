@@ -9,7 +9,7 @@ import 'package:test/test.dart';
 class GreetingModule extends FlutterJSModule {
   final String name = 'greeting';
   JSValuePointer? cache;
-  JSValuePointer resolve(Vm vm, path) {
+  JSValuePointer resolve(Vm vm, List<String> path, String? version) {
     if(vm is QuickJSVm) {
       if(cache == null) {
         cache = vm.newFunction(null, (args, {thisObj}) {
@@ -26,7 +26,7 @@ class AsyncGreetingModule extends FlutterJSModule {
   final String name = 'async_greeting';
 
   @override
-  JSValuePointer resolve(Vm vm, path) {
+  JSValuePointer resolve(Vm vm, List<String> path, String? version) {
     if(vm is QuickJSVm) {
       return vm.newPromise(Future.delayed(Duration(seconds: 2), () => vm.newFunction(null, (args, {thisObj}) {
         print('async greeting called.');

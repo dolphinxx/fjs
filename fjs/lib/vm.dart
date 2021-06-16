@@ -11,7 +11,7 @@ import 'javascriptcore/vm.dart';
 import 'types.dart';
 export 'types.dart';
 
-typedef ModuleResolver = JSValuePointer Function(Vm vm, List<String> path);
+typedef ModuleResolver = JSValuePointer Function(Vm vm, List<String> path, String? version);
 
 abstract class Vm {
   /// Whether to reserve JS undefined using [DART_UNDEFINED].
@@ -122,13 +122,30 @@ abstract class Vm {
   Map<String, ModuleResolver> _moduleResolverMap = {};
   void _setupModuleResolver() {
     final requireFn = newFunction('require', (args, {thisObj}) {
-      List<String> path = jsToDart(args[0]).split('/');
-      String moduleName = path[0];
+      String raw = jsToDart(args[0]);
+      late String moduleName;
+      late List<String> path;
+      String? version;
+      // paths starts with `.` or `/` will not be parsed.
+      if(raw.codeUnitAt(0) == 46 || raw.codeUnitAt(0) == 47) {
+        moduleName = raw;
+        path = [moduleName];
+      } else {
+        path = raw.split('/');
+        String lastPath = path.last;
+        // can have an optional version suffix
+        int versionPos = lastPath.indexOf('@');
+        if(versionPos > 0) {
+          version = lastPath.substring(versionPos + 1);
+          path[path.length - 1] = lastPath.substring(0, versionPos);
+        }
+        moduleName = path[0];
+      }
       if(_moduleMap.containsKey(moduleName)) {
-        return _moduleMap[moduleName]!.resolve(this, path);
+        return _moduleMap[moduleName]!.resolve(this, path, version);
       }
       if(_moduleResolverMap.containsKey(moduleName)) {
-        return _moduleResolverMap[moduleName]!(this, path);
+        return _moduleResolverMap[moduleName]!(this, path, version);
       }
       return $undefined;
     });
