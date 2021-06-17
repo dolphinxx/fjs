@@ -883,7 +883,7 @@ return 0
       for(int i = 1;i < argc;i++) {
         args.add(argv[i]);
       }
-      return Function.apply(fn, [args], {#thisObj: thisObj});
+      return Function.apply(fn, [args], {#thisObj: thisObj})??nullptr;
     } catch(error, stackTrace) {
       exception[0] = newError(JSError.wrap(error, stackTrace));
       return $undefined;
