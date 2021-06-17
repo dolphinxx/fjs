@@ -4,7 +4,7 @@ A Flutter plugin brings JavaScript Engine to your App.
 
 This plugin uses *dart:ffi* to communicate between Flutter and C to reduce performance loss.
 
-We uses [QuickJS](https://bellard.org/quickjs/) for Android/Windows/Linux and JavaScriptCore for iOS/MacOS. 
+We use [QuickJS](https://bellard.org/quickjs/) for Android/Windows/Linux and JavaScriptCore for iOS/MacOS. 
 
 On Apple devices, it is prohibited to ship mobile applications that run JavaScript using a different JIT engine than the one originally provided with the system. Thus we have no choise other than using JavascriptCore.
 
