@@ -4,6 +4,7 @@ import 'package:fjs/javascriptcore/vm.dart';
 import 'package:test/test.dart';
 
 import '../test_utils.dart';
+import '../tests/settimeout_tests.dart';
 
 void main() {
   group('JavaScriptCore', () {
@@ -15,16 +16,10 @@ void main() {
       vm.dispose();
     });
     test('JavaScriptCore setTimeout lambda', capturePrint(() async {
-      vm.evalCode('setTimeout(() => console.log(1024), 1000)');
-      await Future.delayed(Duration(milliseconds: 2000));
-      String? output = consumeLastPrint();
-      expect(output, '1024');
+      await testLambda(vm);
     }));
     test('JavaScriptCore setTimeout legacy', capturePrint(() async {
-      vm.evalCode('setTimeout(function() {console.log(1024)}, 1000)');
-      await Future.delayed(Duration(milliseconds: 2000));
-      String? output = consumeLastPrint();
-      expect(output, '1024');
+      await testLegacy(vm);
     }));
     test('JavaScriptCore setTimeout throw', () async {
       // Exception is ignored in JavaScriptCore implementation, need to try/catch exception inside the setTimeout callback by your self.
@@ -32,26 +27,14 @@ void main() {
       await Future.delayed(Duration(milliseconds: 2000));
     });
     test('JavaScriptCore clearTimeout', capturePrint(() async {
-      int id = vm.getInt(vm.evalCode('setTimeout(() => console.log(1024), 2000)'))!;
-      await Future.delayed(Duration(milliseconds: 3000));
-      String? output = consumeLastPrint();
-      expect(output, '1024');
-      id = vm.getInt(vm.evalCode('setTimeout(() => console.log(1024), 2000)'))!;
-      vm.evalCode('clearTimeout($id)');
-      await Future.delayed(Duration(milliseconds: 3000));
-      output = consumeLastPrint();
-      expect(output, isNull);
+      await testClearTimeout(vm);
     }));
     test('JavaScriptCore setTimeout nested', capturePrint(() async {
-      // FIXME: The following exception thrown when running after the `clearTimeout` test.
+      // FIXME: The following exception thrown when running after the `clearTimeout` test(MacOS).
       // If switch the order of the two tests, the exception is gone.
       // nhandled error during finalization of test:
       // TestDeviceException(Shell subprocess crashed with segmentation fault.)
-      await Future.delayed(Duration(seconds: 2));
-      vm.evalCode('setTimeout(() => setTimeout(() => console.log(1024), 1000), 1000)');
-      await Future.delayed(Duration(milliseconds: 3000));
-      String? output = consumeLastPrint();
-      expect(output, '1024');
+      await testNested(vm);
     }));
   });
 }

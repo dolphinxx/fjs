@@ -1,10 +1,9 @@
 import 'package:fjs/quickjs/vm.dart';
 import 'package:test/test.dart';
-
-import '../tests/promise_tests.dart';
+import '../tests/js_feature_tests.dart';
 
 void main() {
-  group('promise', () {
+  group('js_feature', () {
     late QuickJSVm vm;
     setUp(() {
       vm = QuickJSVm();
@@ -12,8 +11,8 @@ void main() {
     tearDown(() {
       vm.dispose();
     });
-    test('nested promise', () async {
-      await testNested(vm);
+    test('regex capturing group', () async {
+      testRegexCapturingGroup(vm);
     });
   });
 }

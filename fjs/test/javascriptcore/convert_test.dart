@@ -1,9 +1,10 @@
 import 'package:fjs/javascriptcore/vm.dart';
 import 'package:test/test.dart';
-import '../tests/constructor_tests.dart';
+
+import '../tests/convert_tests.dart';
 
 void main() {
-  group('constructor', () {
+  group('convert', () {
     late JavaScriptCoreVm vm;
     setUp(() {
       vm = JavaScriptCoreVm();
@@ -11,11 +12,11 @@ void main() {
     tearDown(() {
       vm.dispose();
     });
-    test('constructor call in dart', () {
-      testConstructorCallInDart(vm);
+    test('dart to js to dart', () async {
+      await testDartToJSToDart(vm);
     });
-    test('constructor call in js', () {
-      testConstructorCallInJS(vm);
+    test('js to dart to js', () async {
+      await testJSToDartToJS(vm);
     });
   });
 }

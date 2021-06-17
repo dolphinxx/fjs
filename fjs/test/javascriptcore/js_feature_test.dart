@@ -1,9 +1,9 @@
 import 'package:fjs/javascriptcore/vm.dart';
 import 'package:test/test.dart';
-import '../tests/constructor_tests.dart';
+import '../tests/js_feature_tests.dart';
 
 void main() {
-  group('constructor', () {
+  group('js_feature', () {
     late JavaScriptCoreVm vm;
     setUp(() {
       vm = JavaScriptCoreVm();
@@ -11,11 +11,8 @@ void main() {
     tearDown(() {
       vm.dispose();
     });
-    test('constructor call in dart', () {
-      testConstructorCallInDart(vm);
-    });
-    test('constructor call in js', () {
-      testConstructorCallInJS(vm);
+    test('regex capturing group', () async {
+      testRegexCapturingGroup(vm);
     });
   });
 }
