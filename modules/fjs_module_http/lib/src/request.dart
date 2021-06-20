@@ -89,7 +89,19 @@ String encodeBody(dynamic body, MediaType? contentType) {
   return body.toString();
 }
 
-Future<NativeResponse> send(HttpClient client, Map httpOptions, Map clientOptions, {CacheProvider? cacheProvider, required Map<String, Encoding> encodingMap, AbortController? abortController, BeforeSendInterceptor? beforeSendInterceptor, RequestInterceptor? requestInterceptor, ResponseInterceptor? responseInterceptor}) async {
+Future<NativeResponse> send(
+    HttpClient client,
+    Map httpOptions,
+    Map clientOptions,
+    {
+      CacheProvider? cacheProvider,
+      required Map<String, Encoding> encodingMap,
+      AbortController? abortController,
+      BeforeSendInterceptor? beforeSendInterceptor,
+      RequestInterceptor? requestInterceptor,
+      ResponseInterceptor? responseInterceptor,
+      bool verbose = false,
+    }) async {
   if(beforeSendInterceptor != null) {
     beforeSendInterceptor(httpOptions, clientOptions);
   }
@@ -163,7 +175,19 @@ Future<NativeResponse> send(HttpClient client, Map httpOptions, Map clientOption
   if(requestInterceptor != null) {
     ioRequest = requestInterceptor(ioRequest, httpOptions, clientOptions);
   }
+
+  if(verbose) {
+    print('> ${ioRequest.method.toUpperCase()} ${ioRequest.uri}\n');
+    ioRequest.headers.forEach((name, values) => print('> $name: ${values.join(", ")}'));
+  }
+
   HttpClientResponse response = await ioRequest.close();
+
+  if(verbose) {
+    print('< ${response.statusCode} ${response.reasonPhrase}');
+    response.headers.forEach((name, values) => print('< $name: ${values.join(", ")}'));
+  }
+
   if(responseInterceptor != null) {
     response = responseInterceptor(response, httpOptions, clientOptions);
   }

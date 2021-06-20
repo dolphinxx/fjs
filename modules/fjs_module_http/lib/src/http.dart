@@ -19,27 +19,25 @@ class FlutterJSHttpModule implements FlutterJSModule{
   RequestInterceptor? requestInterceptor;
   ResponseInterceptor? responseInterceptor;
   BeforeSendInterceptor? beforeSendInterceptor;
-  bool quiet;
+  bool verbose;
   int _requestNextId = 1;
 
   /// Provide a [httpClientProvider] to have customization of `HttpClient` instance creation.
   ///
   /// If your desired charsets are not appear in `Encoding`, provider them through [encodingMap].
   ///
-  /// Only fatal messages are printed if [quiet] is true.
-  ///
   /// Use [httpOptions] and [clientOptions] to apply default settings.
   FlutterJSHttpModule({
     HttpClient httpClientProvider()?,
     Map<String, Encoding>? encodingMap,
-    bool? quiet,
+    bool? verbose,
     this.httpOptions,
     this.clientOptions,
     this.cacheProvider,
     this.beforeSendInterceptor,
     this.requestInterceptor,
     this.responseInterceptor,
-  }):quiet = quiet??true {
+  }):verbose = verbose??false {
     client = (httpClientProvider??() => HttpClient())();
     if(encodingMap != null) {
       _encodingMap.addAll(encodingMap);
@@ -117,12 +115,12 @@ class FlutterJSHttpModule implements FlutterJSModule{
 
     _abortControllers[requestId] = _abortController;
     try {
-      return await send(client, httpOptions, clientOptions, cacheProvider: cacheProvider, encodingMap: _encodingMap, abortController: _abortController, beforeSendInterceptor: beforeSendInterceptor, requestInterceptor: requestInterceptor, responseInterceptor: responseInterceptor);
+      return await send(client, httpOptions, clientOptions, cacheProvider: cacheProvider, encodingMap: _encodingMap, abortController: _abortController, beforeSendInterceptor: beforeSendInterceptor, requestInterceptor: requestInterceptor, responseInterceptor: responseInterceptor, verbose: verbose);
     } catch(err, stackTrace) {
       if(err is HttpException) {
         return {"statusCode": err is AbortException ? 308 : 0, "reasonPhrase": err.message};
       } else {
-        if(!quiet) {
+        if(verbose) {
           print('Request for ${httpOptions["url"]} failed.\n$err\n$stackTrace');
         }
         return {"statusCode": 0, "reasonPhrase": err.toString()};
