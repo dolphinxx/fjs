@@ -4,6 +4,7 @@ import 'package:fjs/javascriptcore/vm.dart';
 import 'package:fjs/vm.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../lib/src/cookie.dart';
 import '../../lib/src/http.dart';
 import '../test_cache_provider.dart';
 import '../test_server.dart';
@@ -68,6 +69,24 @@ void main() {
     });
     test('cache', () async {
       await testCache(vm, server);
+    }, timeout: Timeout(Duration(seconds: 100)));
+  });
+  group('cookie http_client', () {
+    late Vm vm;
+    late HttpServer server;
+    setUp(() async {
+      vm = JavaScriptCoreVm();
+      vm.registerModule(FlutterJSHttpModule(cookieManager: InMemoryCookieManager()));
+      server = await serve();
+    });
+    tearDown(() {
+      try {
+        vm.dispose();
+      } catch (_) {}
+      server.close();
+    });
+    test('cookie', () async {
+      await testCookie(vm, server);
     }, timeout: Timeout(Duration(seconds: 100)));
   });
 }

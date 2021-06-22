@@ -7,6 +7,7 @@ import 'package:fjs/module.dart';
 
 import 'request.dart';
 import 'cache.dart';
+import 'cookie.dart';
 import 'abort_controller.dart';
 
 class FlutterJSHttpModule implements FlutterJSModule{
@@ -14,6 +15,7 @@ class FlutterJSHttpModule implements FlutterJSModule{
   final Map<int, AbortController> _abortControllers = {};
   late final HttpClient client;
   CacheProvider? cacheProvider;
+  CookieManager? cookieManager;
   Map<String, dynamic>? httpOptions;
   Map<String, dynamic>? clientOptions;
   RequestInterceptor? requestInterceptor;
@@ -34,6 +36,7 @@ class FlutterJSHttpModule implements FlutterJSModule{
     this.httpOptions,
     this.clientOptions,
     this.cacheProvider,
+    this.cookieManager,
     this.beforeSendInterceptor,
     this.requestInterceptor,
     this.responseInterceptor,
@@ -80,6 +83,37 @@ class FlutterJSHttpModule implements FlutterJSModule{
           }),
         });
       }),
+      'cookieManager': cookieManager == null ? vm.$undefined : vm.dartToJS({
+        'set': vm.newFunction('_set', (args, {thisObj}) {
+          String uri = vm.jsToDart(args[0]);
+          dynamic cookie = vm.jsToDart(args[1]);
+          if(cookie is List) {
+            return vm.dartToJS(cookieManager!.setAll(Uri.parse(uri), cookie.map((raw) => Cookie.fromSetCookieValue(raw)).toList()));
+          }
+          return vm.dartToJS(cookieManager!.set(Uri.parse(uri), Cookie.fromSetCookieValue(cookie)));
+        }),
+        'get': vm.newFunction('_get', (args, {thisObj}) {
+          String uri = vm.jsToDart(args[0]);
+          return vm.dartToJS(Future.value(cookieManager!.get(Uri.parse(uri))).then((cookies) => cookies.map((cookie) => CookieManager.toJson(cookie)).toList()));
+        }),
+        'getByName': vm.newFunction('getByName', (args, {thisObj}) {
+          String uri = vm.jsToDart(args[0]);
+          String name = vm.jsToDart(args[1]);
+          return vm.dartToJS(Future.value(cookieManager!.getByName(Uri.parse(uri), name)).then((cookies) => cookies.map((cookie) => CookieManager.toJson(cookie)).toList()));
+        }),
+        'delete': vm.newFunction('_delete', (args, {thisObj}) {
+          String uri = vm.jsToDart(args[0]);
+          return vm.dartToJS(cookieManager!.delete(Uri.parse(uri)));
+        }),
+        'deleteByName': vm.newFunction('deleteByName', (args, {thisObj}) {
+          String uri = vm.jsToDart(args[0]);
+          String name = vm.jsToDart(args[1]);
+          return vm.dartToJS(cookieManager!.deleteByName(Uri.parse(uri), name));
+        }),
+        'deleteAll': vm.newFunction('deleteAll', (args, {thisObj}) {
+          return vm.dartToJS(cookieManager!.deleteAll());
+        }),
+      }),
     });
   }
 
@@ -115,7 +149,7 @@ class FlutterJSHttpModule implements FlutterJSModule{
 
     _abortControllers[requestId] = _abortController;
     try {
-      return await send(client, httpOptions, clientOptions, cacheProvider: cacheProvider, encodingMap: _encodingMap, abortController: _abortController, beforeSendInterceptor: beforeSendInterceptor, requestInterceptor: requestInterceptor, responseInterceptor: responseInterceptor, verbose: verbose);
+      return await send(client, httpOptions, clientOptions, cacheProvider: cacheProvider, cookieManager: cookieManager, encodingMap: _encodingMap, abortController: _abortController, beforeSendInterceptor: beforeSendInterceptor, requestInterceptor: requestInterceptor, responseInterceptor: responseInterceptor, verbose: verbose);
     } catch(err, stackTrace) {
       if(err is HttpException) {
         return {"statusCode": err is AbortException ? 308 : 0, "reasonPhrase": err.message};

@@ -367,3 +367,81 @@ testCache(Vm vm, HttpServer server) async {
   });
   expect(result['coast'], lessThan(15000));
 }
+
+testCookie(Vm vm, HttpServer server) async {
+  List<List<Cookie>> cookies = [];
+  int i = 0;
+  requestHandler = (request, response) async {
+    if (request.requestedUri.path == '/cookie') {
+      cookies.add([...request.cookies]);
+      if(request.cookies.where((_) => _.name == 'greeting').isEmpty) {
+        response.cookies.add(Cookie('greeting', Uri.encodeComponent('Hello Flutter ${++i} times!'))..httpOnly = false);
+      }
+      response.contentLength = 3;
+      response.statusCode = 200;
+      response.write('OK!');
+      return true;
+    }
+    return false;
+  };
+  final source = '''
+      (async function() {
+        const {send, cookieManager} = require('http');
+        const url = 'http://${server.address.address}:${server.port}/cookie';
+        const response1 = await send({url, headers: {'Cookie': 'id=123456'}});
+        const response2 = await send({url});
+        return {response1, response2, greeting: await cookieManager.getByName(url, 'greeting')}
+      }())
+      ''';
+  vm.startEventLoop();
+  final result = await vm.jsToDart(vm.evalCode(source, filename: '<test>'));
+  expect(result['response1'], {
+    'headers': {
+      'x-frame-options': 'SAMEORIGIN',
+      'content-type': 'text/plain; charset=utf-8',
+      'x-xss-protection': '1; mode=block',
+      'set-cookie': 'greeting=Hello%20Flutter%201%20times!',
+      'x-content-type-options': 'nosniff',
+      'content-length': '3'
+    },
+    'isRedirect': false,
+    'persistentConnection': true,
+    'reasonPhrase': 'OK',
+    'statusCode': 200,
+    'body': 'OK!',
+    'redirects': [],
+  });
+  expect(result['response2'], {
+    'headers': {
+      'x-frame-options': 'SAMEORIGIN',
+      'content-type': 'text/plain; charset=utf-8',
+      'x-xss-protection': '1; mode=block',
+      'x-content-type-options': 'nosniff',
+      'content-length': '3'
+    },
+    'isRedirect': false,
+    'persistentConnection': true,
+    'reasonPhrase': 'OK',
+    'statusCode': 200,
+    'body': 'OK!',
+    'redirects': [],
+  });
+  expect(i, 1);
+  expect(cookies[0], hasLength(1));
+  expect(cookies[0].first.name, 'id');
+  expect(cookies[0].first.value, '123456');
+  expect(cookies[1], hasLength(1));
+  expect(cookies[1].first.name, 'greeting');
+  expect(cookies[1].first.value, 'Hello%20Flutter%201%20times!');
+  expect(result['greeting'], [
+    {
+      'name': 'greeting',
+      'value': 'Hello%20Flutter%201%20times!',
+      'domain': null,
+      'path': null,
+      'secure': false,
+      'httpOnly': false,
+      'RFC6265string': 'greeting=Hello%20Flutter%201%20times!'
+    }
+  ]);
+}

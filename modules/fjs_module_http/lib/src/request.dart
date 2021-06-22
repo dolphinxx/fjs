@@ -3,6 +3,7 @@ import 'dart:io';
 import 'abort_controller.dart';
 
 import 'cache.dart';
+import 'cookie.dart';
 import 'response.dart';
 import 'media_type.dart';
 
@@ -95,6 +96,7 @@ Future<NativeResponse> send(
     Map clientOptions,
     {
       CacheProvider? cacheProvider,
+      CookieManager? cookieManager,
       required Map<String, Encoding> encodingMap,
       AbortController? abortController,
       BeforeSendInterceptor? beforeSendInterceptor,
@@ -139,9 +141,6 @@ Future<NativeResponse> send(
   if(clientOptions.containsKey('autoUncompress')) {
     client.autoUncompress = clientOptions['autoUncompress'];
   }
-  if(clientOptions.containsKey('followCookies')) {
-    // TODO: Auto CookieManager
-  }
 
   if(abortController?.aborted == true) {
     throw AbortException(uri);
@@ -176,6 +175,10 @@ Future<NativeResponse> send(
     ioRequest = requestInterceptor(ioRequest, httpOptions, clientOptions);
   }
 
+  if(clientOptions['followCookies'] != false && cookieManager != null) {
+    ioRequest.cookies.addAll(await cookieManager.get(uri));
+  }
+
   if(verbose) {
     print('> ${ioRequest.method.toUpperCase()} ${ioRequest.uri}\n');
     ioRequest.headers.forEach((name, values) => print('> $name: ${values.join(", ")}'));
@@ -186,6 +189,10 @@ Future<NativeResponse> send(
   if(verbose) {
     print('< ${response.statusCode} ${response.reasonPhrase}');
     response.headers.forEach((name, values) => print('< $name: ${values.join(", ")}'));
+  }
+
+  if(clientOptions['followCookies'] != false && cookieManager != null) {
+    await cookieManager.setAll(uri, response.cookies);
   }
 
   if(responseInterceptor != null) {
