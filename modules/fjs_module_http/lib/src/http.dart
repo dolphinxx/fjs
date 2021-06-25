@@ -10,10 +10,12 @@ import 'cache.dart';
 import 'cookie.dart';
 import 'abort_controller.dart';
 
+typedef HttpClientProvider = HttpClient Function();
+
 class FlutterJSHttpModule implements FlutterJSModule{
   final Map<String, Encoding> _encodingMap = {};
   final Map<int, AbortController> _abortControllers = {};
-  late final HttpClient client;
+  HttpClientProvider httpClientProvider;
   CacheProvider? cacheProvider;
   CookieManager? cookieManager;
   Map<String, dynamic>? httpOptions;
@@ -30,7 +32,7 @@ class FlutterJSHttpModule implements FlutterJSModule{
   ///
   /// Use [httpOptions] and [clientOptions] to apply default settings.
   FlutterJSHttpModule({
-    HttpClient httpClientProvider()?,
+    HttpClientProvider? httpClientProvider,
     Map<String, Encoding>? encodingMap,
     bool? verbose,
     this.httpOptions,
@@ -40,8 +42,7 @@ class FlutterJSHttpModule implements FlutterJSModule{
     this.beforeSendInterceptor,
     this.requestInterceptor,
     this.responseInterceptor,
-  }):verbose = verbose??false {
-    client = (httpClientProvider??() => HttpClient())();
+  }):verbose = verbose??false,httpClientProvider = httpClientProvider?? (() => HttpClient()) {
     if(encodingMap != null) {
       _encodingMap.addAll(encodingMap);
     }
@@ -118,7 +119,6 @@ class FlutterJSHttpModule implements FlutterJSModule{
   }
 
   void dispose() {
-    client.close();
   }
 
   Future perform(int requestId, Map<String, dynamic> httpOptions, Map<String, dynamic> clientOptions) async {
@@ -148,6 +148,7 @@ class FlutterJSHttpModule implements FlutterJSModule{
     AbortController _abortController = AbortController();
 
     _abortControllers[requestId] = _abortController;
+    HttpClient client = httpClientProvider();
     try {
       return await send(client, httpOptions, clientOptions, cacheProvider: cacheProvider, cookieManager: cookieManager, encodingMap: _encodingMap, abortController: _abortController, beforeSendInterceptor: beforeSendInterceptor, requestInterceptor: requestInterceptor, responseInterceptor: responseInterceptor, verbose: verbose);
     } catch(err, stackTrace) {
@@ -161,6 +162,7 @@ class FlutterJSHttpModule implements FlutterJSModule{
       }
     } finally {
       _abortControllers.remove(requestId);
+      client.close();
     }
   }
 }
