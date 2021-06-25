@@ -111,7 +111,7 @@ Future<NativeResponse> send(
   String method = (httpOptions['method'] as String?)?.toUpperCase()??'GET';
   Map<String, String> requestHeaders = createHeaders(httpOptions['headers']);
   if(cacheProvider != null) {
-    NativeResponse? response = cacheProvider.get(uri, method, requestHeaders, clientOptions);
+    NativeResponse? response = await Future.value(cacheProvider.get(uri, method, requestHeaders, clientOptions));
     if(response != null) {
       return response;
     }
