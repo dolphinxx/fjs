@@ -89,6 +89,7 @@ class JavaScriptCoreVm extends Vm implements Disposable {
   final Scope _scope = new Scope();
   bool _disposed = false;
   bool get disposed => _disposed;
+  final List<JSValueRef> _protectedValues = [];
 
   JavaScriptCoreVm({
     bool? reserveUndefined,
@@ -164,6 +165,7 @@ return 0
       jSStringRelease(argRef);
       jSStringRelease(bodyRef);
     });
+    _protect(_handyTypeof);
   }
 
   int handyTypeof(JSValueRef val) {
@@ -201,7 +203,7 @@ return 0
       int id = _timeoutNextId++;
       JSValueRef fn = args[0];
       // prevent GC
-      jSValueProtect(ctx, fn);
+      _protect(fn);
       int ms = getInt(args[1])!;
       _timeoutMap[id] = Future.delayed(Duration(milliseconds: ms), () {
         if(_disposed) {
@@ -213,7 +215,7 @@ return 0
           // Here we just ignore the exception.
           jSObjectCallAsFunction(ctx, fn, nullptr, 0, nullptr, nullptr);
         }
-        jSValueUnprotect(ctx, fn);
+        _unprotect(fn);
       });
       return newNumber(id);
     };
@@ -226,21 +228,21 @@ return 0
     setProperty(global, 'clearTimeout', newFunction(null, clearTimeout));
   }
 
-  // Map<String, FlutterJSModule> _moduleMap = {};
-  // void _setupModuleResolver() {
-  //   final JSValueRef fn = newFunction('require', (args, {thisObj}) {
-  //     String moduleName = jsToDart(args[0]);
-  //     if(!_moduleMap.containsKey(moduleName)) {
-  //       return $undefined;
-  //     }
-  //     return _moduleMap[moduleName]!.resolve(this);
-  //   });
-  //   setProperty(global, 'require', fn);
-  // }
-  //
-  // void registerModule(FlutterJSModule module) {
-  //   _moduleMap[module.name] = module;
-  // }
+  JSValueRef _protect(JSValueRef val) {
+    if(_protectedValues.contains(val)) {
+      return val;
+    }
+    jSValueProtect(ctx, val);
+    _protectedValues.add(val);
+    return val;
+  }
+
+  void _unprotect(JSValueRef val) {
+    if(!_protectedValues.remove(val)) {
+      return;
+    }
+    jSValueUnprotect(ctx, val);
+  }
 
   /**
    * [`undefined`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined).
@@ -618,6 +620,10 @@ return 0
     }
     _disposed = true;
     super.dispose();
+    _protectedValues.forEach((_) {
+      jSValueUnprotect(ctx, _);
+    });
+    _protectedValues.clear();
     _vmMap.remove(ctx);
     this._scope.dispose();
     this._timeoutMap.clear();
