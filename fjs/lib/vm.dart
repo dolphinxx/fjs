@@ -111,6 +111,7 @@ abstract class Vm {
     _setupModuleResolver();
   }
 
+  /// It is safe to call [dispose] repeatedly, but should not call any other method after the vm is disposed.
   @mustCallSuper
   void dispose() {
     _moduleResolverMap.clear();
@@ -170,6 +171,8 @@ abstract class Vm {
   void registerModuleResolver(String name, ModuleResolver resolver) {
     _moduleResolverMap[name] = resolver;
   }
+
+  bool get disposed;
 
   /// [`undefined`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined)
   JSValuePointer get $undefined;

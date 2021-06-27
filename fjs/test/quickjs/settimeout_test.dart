@@ -37,4 +37,10 @@ void main() {
       await testNested(vm);
     }));
   });
+  group('interrupted', () {
+    test('QuickJS setTimeout interrupted', capturePrint(() async {
+      QuickJSVm vm = QuickJSVm();
+      testSafeDispose(vm);
+    }));
+  });
 }

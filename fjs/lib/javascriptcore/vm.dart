@@ -87,6 +87,8 @@ class JavaScriptCoreVm extends Vm implements Disposable {
   late JSObjectRef _handyTypeof;
 
   final Scope _scope = new Scope();
+  bool _disposed = false;
+  bool get disposed => _disposed;
 
   JavaScriptCoreVm({
     bool? reserveUndefined,
@@ -202,6 +204,9 @@ return 0
       jSValueProtect(ctx, fn);
       int ms = getInt(args[1])!;
       _timeoutMap[id] = Future.delayed(Duration(milliseconds: ms), () {
+        if(_disposed) {
+          return;
+        }
         if(_timeoutMap.containsKey(id)) {
           _timeoutMap.remove(id);
           // Note: Prefer try/catch exception inside setTimeout callback function.
@@ -608,6 +613,10 @@ return 0
 
   /// Dispose of this VM's underlying resources.
   dispose() {
+    if(_disposed) {
+      return;
+    }
+    _disposed = true;
     super.dispose();
     _vmMap.remove(ctx);
     this._scope.dispose();

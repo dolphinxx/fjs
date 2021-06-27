@@ -36,7 +36,7 @@ testClearTimeout(Vm vm) async {
 testNested(Vm vm) async {
 // FIXME: The following exception thrown when running after the `clearTimeout` test.
 // If switch the order of the two tests, the exception is gone.
-// nhandled error during finalization of test:
+// unhandled error during finalization of test:
 // TestDeviceException(Shell subprocess crashed with segmentation fault.)
   await Future.delayed(Duration(seconds: 2));
   vm.evalCode(
@@ -44,4 +44,14 @@ testNested(Vm vm) async {
   await Future.delayed(Duration(milliseconds: 3000));
   String? output = consumeLastPrint();
   expect(output, '1024');
+}
+
+/// It should be safe to dispose vm before setTimeout callback is invoked.
+testSafeDispose(Vm vm) async {
+  vm.evalCode('setTimeout(function() {console.log(1024)}, 2000)');
+  vm.dispose();
+  await Future.delayed(Duration(seconds: 4));
+  String? output = consumeLastPrint();
+  expect(output, 'vm disposed');
+  print('success');
 }

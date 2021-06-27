@@ -59,6 +59,8 @@ class QuickJSVm extends Vm implements Disposable {
   JSValuePointer? _true;
   JSValuePointer? _global;
   final Scope _scope = new Scope();
+  bool _disposed = false;
+  bool get disposed => _disposed;
   /// heap values created by this vm, and should be freed when this vm is disposed.
   final Set<JSValuePointer> _heapValues = Set();
 
@@ -135,15 +137,18 @@ class QuickJSVm extends Vm implements Disposable {
   void _setupSetTimeout() {
     JSToDartFunction setTimeout = (List<JSValuePointer> args, {JSValuePointer? thisObj}) {
       int id = _timeoutNextId++;
-      JSValuePointer fn = JS_DupValuePointer(ctx, args[0]);
+      JSValuePointer fn = _heapValueHandle(JS_DupValuePointer(ctx, args[0]));
       int ms = getInt(args[1])!;
       _timeoutMap[id] = Future.delayed(Duration(milliseconds: ms), () {
+        if(_disposed) {
+          return;
+        }
         // cancelled
         if(_timeoutMap.containsKey(id)) {
           _timeoutMap.remove(id);
           JS_CallVoid(ctx, fn, $undefined, 0, nullptr);
         }
-        JS_FreeValuePointer(ctx, fn);
+        _freeJSValue(fn);
       });
       return newNumber(id);
     };
@@ -1060,6 +1065,10 @@ class QuickJSVm extends Vm implements Disposable {
    * will result in an error.
    */
   dispose() {
+    if(_disposed) {
+      return;
+    }
+    _disposed = true;
     super.dispose();
     _eventLoop?.cancel();
     this._heapValues.forEach((val) {
