@@ -912,9 +912,12 @@ class QuickJSVm extends Vm implements Disposable {
       return result;
     }
     // fallback
-    final str = JS_Dump(ctx, value);
+    String str = JSONStringify(value);
+    if(str == 'undefined') {
+      return null;
+    }
     try {
-      return jsonDecode(str.toDartString());
+      return jsonDecode(str);
     } catch (err) {
       return str;
     }
