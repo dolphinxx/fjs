@@ -16,6 +16,9 @@ main() {
     });
 
     group('memory pressure', () {
+      test('128 rows', () async {
+        testMemoryPressure(vm, 128);
+      });
       test('256 rows', () async {
         testMemoryPressure(vm, 256);
       });

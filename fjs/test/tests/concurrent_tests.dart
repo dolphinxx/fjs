@@ -40,7 +40,7 @@ Future<void> _crypto(int i, Vm vmProvider()) async {
 
 Future<void> _json(int i, Vm vmProvider()) async {
   Vm vm = vmProvider();
-  vm.jsToDart(vm.evalCode(File('test/json-generator-dot-com-256-rows.json').readAsStringSync()));
+  vm.jsToDart(vm.evalCode(File('test/json-generator-dot-com-128-rows.json').readAsStringSync()));
   print('>> parse json $i');
   vm.dispose();
 }
