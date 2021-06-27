@@ -379,20 +379,26 @@ class QuickJSVm extends Vm implements Disposable {
   }
 
   JSError extractError(JSValuePointer value, [bool free = true]) {
-    setMemoryLimit(-1); // so we can dump
-    final str = JS_Dump(ctx, value);
+    String? name;
+    String? stack;
+    String message;
+    final int type = JS_HandyTypeof(ctx, value);
+    if(type == JSHandyType.js_Error) {
+      name = jsToDart(getProperty(value, 'name'));
+      stack = jsToDart(getProperty(value, 'stack'));
+      message = jsToDart(getProperty(value, 'message'));
+    } else {
+      message = getString(value);
+    }
+
     if(free) {
       JS_FreeValuePointer(ctx, value);
     }
-    dynamic e = jsonDecode(str.toDartString());
-    if (e is Map && e['message'] is String) {
-      JSError error = JSError(e['message'], e['stack'] == null ? StackTrace.current : StackTrace.fromString(e['stack']));
-      if (e['name'] is String) {
-        error.name = e['name'];
-      }
-      return error;
+    JSError error = JSError(message, stack == null ? StackTrace.current : StackTrace.fromString(stack));
+    if (name != null) {
+      error.name = name;
     }
-    return JSError(e.toString());
+    return error;
   }
 
   /// try getting exception from [value], if exception exists, free [value] and return a `JSError`

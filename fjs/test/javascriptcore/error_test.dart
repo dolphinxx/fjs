@@ -20,5 +20,8 @@ void main() {
     test('JavaScriptCore error from JS', capturePrint(() {
       testErrorFromJS(vm, "Can't find variable: foo", '<test.js>:1:4');
     }));
+    test('QuickJSVm error from throw', capturePrint(() {
+      testErrorFromThrow(vm, 'Error occurred!', 'JavaScriptCoreVm.resolveException');
+    }));
   });
 }

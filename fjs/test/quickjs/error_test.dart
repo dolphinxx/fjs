@@ -1,4 +1,3 @@
-import 'package:fjs/error.dart';
 import 'package:fjs/quickjs/vm.dart';
 import 'package:test/test.dart';
 
@@ -19,6 +18,9 @@ void main() {
     }));
     test('QuickJSVm error from JS', capturePrint(() {
       testErrorFromJS(vm, "\'foo\' is not defined", '(<test.js>)');
+    }));
+    test('QuickJSVm error from throw', capturePrint(() {
+      testErrorFromThrow(vm, "Error occurred!", 'QuickJSVm.extractError');
     }));
   });
 }

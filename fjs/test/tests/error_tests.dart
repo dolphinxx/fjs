@@ -31,3 +31,16 @@ testErrorFromJS(Vm vm, String expectedMsg, String expectedStack) {
     expect(e.stackTrace.toString(), contains(expectedStack));
   }
 }
+
+testErrorFromThrow(Vm vm, String expectedMsg, String expectedStack) {
+  try {
+    vm.evalCode('throw "Error occurred!"', filename: '<test.js>');
+    throw 'should throw an error.';
+  } catch (e, s) {
+    // print('$e\n$s');
+    expect(e, isA<JSError>());
+    e as JSError;
+    expect(e.message, expectedMsg);
+    expect(e.stackTrace.toString(), contains(expectedStack));
+  }
+}
