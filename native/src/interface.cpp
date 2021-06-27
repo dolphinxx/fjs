@@ -315,6 +315,9 @@ JSValue *QJS_NewString(JSContext *ctx, HeapChar *string) {
 
 char* QJS_GetString(JSContext *ctx, JSValueConst *value) {
   const char* owned = JS_ToCString(ctx, *value);
+  if(owned == NULL) {
+    return NULL;
+  }
   char* result = strdup(owned);
   JS_FreeCString(ctx, owned);
   return result;
