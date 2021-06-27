@@ -63,6 +63,7 @@ class QuickJSVm extends Vm implements Disposable {
   bool get disposed => _disposed;
   /// heap values created by this vm, and should be freed when this vm is disposed.
   final Set<JSValuePointer> _heapValues = Set();
+  final List<Completer> _completers = [];
 
   QuickJSVm({
     bool? reserveUndefined,
@@ -435,9 +436,19 @@ class QuickJSVm extends Vm implements Disposable {
         Lifetime(_heapValueHandle(resolves.value[1])),
         future,
       ));
-      if(future != null) {
-        future.then((_) => consumeAndFree(dartToJS(_), (ptr) => promiseWrapper.resolve(ptr)))
-            .catchError((e, StackTrace? s) => consumeAndFree(dartToJS(JSError.wrap(e, s??StackTrace.current)), (ptr) => promiseWrapper.reject(ptr)));
+      if (future != null) {
+        future.then((_) {
+          if (_disposed) {
+            return;
+          }
+          consumeAndFree(dartToJS(_), (ptr) => promiseWrapper.resolve(ptr));
+        })
+            .catchError((e, StackTrace? s) {
+          if (_disposed) {
+            return;
+          }
+          consumeAndFree(dartToJS(JSError.wrap(e, s ?? StackTrace.current)), (ptr) => promiseWrapper.reject(ptr));
+        });
       }
       return promiseWrapper;
     } finally {
@@ -847,13 +858,16 @@ class QuickJSVm extends Vm implements Disposable {
       Completer completer = Completer();
       final thenPtr = getProperty(value, 'then');
       final onFulfilled = newFunction('promise_onFulfilled', (args, {thisObj}) {
+        _completers.remove(completer);
         completer.complete(args.isEmpty ? null : jsToDart(args[0]));
       });
       final onError = newFunction('promise_onError', (args, {thisObj}) {
+        _completers.remove(completer);
         var error = jsToDart(args[0]);
         completer.completeError(error is JSError ? error : JSError(error.toString()));
       });
       try {
+        _completers.add(completer);
         callFunction(thenPtr, value, [onFulfilled, onError]);
         // complete when the promise is resolved/rejected.
         return completer.future;
@@ -1089,6 +1103,9 @@ class QuickJSVm extends Vm implements Disposable {
     JS_FreeContext(ctx);
     _rtMap.remove(rt);
     JS_FreeRuntime(rt);
+    this._completers.forEach((_) {
+      _.completeError(JSError('Vm disposed!'));
+    });
     assert(() {
       print('vm disposed');
       return true;

@@ -90,6 +90,7 @@ class JavaScriptCoreVm extends Vm implements Disposable {
   bool _disposed = false;
   bool get disposed => _disposed;
   final List<JSValueRef> _protectedValues = [];
+  final List<Completer> _completers = [];
 
   JavaScriptCoreVm({
     bool? reserveUndefined,
@@ -477,9 +478,18 @@ return 0
       Lifetime(reject[0], (_) => calloc.free(reject)),
       future,
     ));
-    if(future != null) {
-      future.then((_) => promiseWrapper.resolve(dartToJS(_)))
-          .catchError((e, StackTrace? s) => promiseWrapper.reject(dartToJS(JSError.wrap(e, s??StackTrace.current))));
+    if (future != null) {
+      future.then((_) {
+        if (_disposed) {
+          return;
+        }
+        promiseWrapper.resolve(dartToJS(_));
+      }).catchError((e, StackTrace? s) {
+        if (_disposed) {
+          return;
+        }
+        promiseWrapper.reject(dartToJS(JSError.wrap(e, s ?? StackTrace.current)));
+      });
     }
     return promiseWrapper;
   }
@@ -631,6 +641,9 @@ return 0
     this._scope.dispose();
     this._timeoutMap.clear();
     this._fnMap.clear();
+    this._completers.forEach((_) {
+      _.completeError(JSError('Vm disposed!'));
+    });
     assert(() {
       print('vm disposed');
       return true;
@@ -709,12 +722,15 @@ return 0
       Completer completer = Completer();
       final thenPtr = getProperty(value, 'then');
       final onFulfilled = newFunction(null, (args, {thisObj}) {
+        _completers.remove(completer);
         completer.complete(args.isEmpty ? null : jsToDart(args[0]));
       });
       final onError = newFunction(null, (args, {thisObj}) {
+        _completers.remove(completer);
         var error = jsToDart(args[0]);
         completer.completeError(JSError.wrap(error));
       });
+      _completers.add(completer);
       callFunction(thenPtr, value, [onFulfilled, onError]);
       // complete when the promise is resolved/rejected.
       return completer.future;

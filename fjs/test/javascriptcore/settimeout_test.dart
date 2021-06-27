@@ -37,10 +37,4 @@ void main() {
       await testNested(vm);
     }));
   });
-  group('interrupted', () {
-    test('JavaScriptCore setTimeout interrupted', capturePrint(() async {
-      JavaScriptCoreVm vm = JavaScriptCoreVm();
-      testSafeDispose(vm);
-    }));
-  });
 }

@@ -45,13 +45,3 @@ testNested(Vm vm) async {
   String? output = consumeLastPrint();
   expect(output, '1024');
 }
-
-/// It should be safe to dispose vm before setTimeout callback is invoked.
-testSafeDispose(Vm vm) async {
-  vm.evalCode('setTimeout(function() {console.log(1024)}, 2000)');
-  vm.dispose();
-  await Future.delayed(Duration(seconds: 4));
-  String? output = consumeLastPrint();
-  expect(output, 'vm disposed');
-  print('success');
-}
