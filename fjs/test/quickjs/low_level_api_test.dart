@@ -124,6 +124,11 @@ void main() {
       expect(vm.hasProperty(obj, 'a'), isTrue);
       expect(vm.hasProperty(obj, 'b'), isFalse);
     });
+    test('getProp', () {
+      final obj = vm.newObject({'a': 1024});
+      expect(vm.jsToDart(vm.getProperty(obj, 'a')), 1024);
+      expect(vm.jsToDart(vm.getProperty(obj, 'b')), isNull);
+    });
     test('set prop to args', () {
       final fn = vm.newFunction(null, (args, {thisObj}) {
         vm.setProperty(args[0], 'msg', vm.dartToJS('Hello World!'));
