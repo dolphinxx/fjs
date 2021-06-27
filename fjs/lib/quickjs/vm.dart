@@ -118,6 +118,9 @@ class QuickJSVm extends Vm implements Disposable {
       if(disableConsoleInRelease && kReleaseMode) {
         return;
       }
+      if(_disposed) {
+        return;
+      }
       String msg = args.map((_) {
         try {
           return jsToDart(_);

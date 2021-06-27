@@ -183,6 +183,9 @@ return 0
       if(disableConsoleInRelease && kReleaseMode) {
         return;
       }
+      if(_disposed) {
+        return;
+      }
       String msg = args.map((_) {
         try {
           return jsToDart(_);
