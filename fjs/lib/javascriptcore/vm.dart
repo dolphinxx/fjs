@@ -543,6 +543,15 @@ return 0
     return hasProp(obj, key);
   }
 
+  String JSONStringify(JSValueRef jsValueRef) {
+    final strRef = runWithExceptionHandle((exception) => jSValueCreateJSONString(ctx, jsValueRef, 0, exception));
+    // JSON.stringify of Some JS values returns undefined.(e.g.: Symbol)
+    if(strRef == nullptr) {
+      return 'undefined';
+    }
+    return stringRefGetString(strRef);
+  }
+
   JSValueRef callFunction(JSObjectRef func,
       [JSObjectRef? thisVal, List<JSValueRef>? args]) {
     JSValueRefArray? argv;
@@ -710,12 +719,10 @@ return 0
         return result;
     }
     // fallback
-    final strRef = runWithExceptionHandle((exception) => jSValueCreateJSONString(ctx, jsValueRef, 0, exception));
-    // JSON.stringify of Some JS values returns undefined.(e.g.: Symbol)
-    if(strRef == nullptr) {
+    String str = JSONStringify(jsValueRef);
+    if(str == 'undefined') {
       return null;
     }
-    final str = stringRefGetString(strRef);
     try {
       return jsonDecode(str);
     } catch (err) {

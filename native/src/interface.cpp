@@ -778,6 +778,10 @@ void QJS_TestStringArg(const char *string) {
     return jsvalue_to_heap(JS_GetException(ctx));
   }
 
+  JSValue* QJS_JSONStringify(JSContext *ctx, JSValueConst *obj) {
+    return jsvalue_to_heap(JS_JSONStringify(ctx, *obj, JS_UNDEFINED, JS_UNDEFINED));
+  }
+
   /* for test */
   void print_exception(JSContext *ctx, JSValue val) {
       JSValue exception = JS_GetException(ctx);

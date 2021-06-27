@@ -33,6 +33,7 @@ EXPORTS
    QJS_HasProperty
    QJS_IsArray
    QJS_IsJobPending
+   QJS_JSONStringify
    QJS_NewArray
    QJS_NewArrayBuffer
    QJS_NewArrayBufferCopy

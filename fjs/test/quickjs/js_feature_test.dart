@@ -14,5 +14,8 @@ void main() {
     test('regex capturing group', () async {
       testRegexCapturingGroup(vm);
     });
+    test('JSONStringify', () async {
+      testJSONStringify(vm);
+    });
   });
 }

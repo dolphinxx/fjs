@@ -602,6 +602,14 @@ class QuickJSVm extends Vm implements Disposable {
     defineProp(obj, key, descriptor);
   }
 
+  String JSONStringify(JSValuePointer value) {
+    JSValuePointer json = JS_JSONStringify(ctx, value);
+    if(json == nullptr) {
+      return 'null';
+    }
+    return getString(json);
+  }
+
   /// [`func.call(thisVal, ...args)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/call).
   /// Call a JSValue as a function.
   ///

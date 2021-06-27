@@ -265,6 +265,8 @@ abstract class Vm {
 
   bool hasProperty(JSValuePointer obj, dynamic key);
 
+  String JSONStringify(JSValuePointer value);
+
   /// [`func.call(thisVal, ...args)`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/call).
   ///
   /// Call a JSValue as a function.

@@ -531,6 +531,12 @@ final JS_GetException = dylib.lookupFunction<
     JSValuePointer Function(JSContextPointer ctx)
 >('QJS_GetException');
 
+/// JSValue* QJS_JSONStringify(JSContext *ctx, JSValueConst *obj)
+final JS_JSONStringify = dylib.lookupFunction<
+  JSValuePointer Function(JSContextPointer, JSValuePointer),
+  JSValuePointer Function(JSContextPointer ctx, JSValuePointer obj)
+>('QJS_JSONStringify');
+
 /// typedef uint8_t QJS_Module_Loader(JSContext* ctx, char** buff, size_t *len, const char* module_name)
 typedef QJS_Module_Loader = Uint8 Function(JSContextPointer ctx, Pointer<Pointer<Utf8>> buffPointer, Pointer<IntPtr> lenPointer, Pointer<Utf8> module_name);
 typedef QJS_Module_Loader_Dart = int Function(JSContextPointer ctx, Pointer<Pointer<Utf8>> buffPointer, Pointer<IntPtr> lenPointer, Pointer<Utf8> module_name);
