@@ -53,6 +53,7 @@ EXPORTS
    QJS_RuntimeDisableInterruptHandler
    QJS_RuntimeDumpMemoryUsage
    QJS_RuntimeEnableInterruptHandler
+   QJS_RuntimeSetMaxStackSize
    QJS_RuntimeSetMemoryLimit
    QJS_SetHostCallback
    QJS_SetInterruptCallback

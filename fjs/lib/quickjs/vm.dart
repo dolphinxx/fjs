@@ -1027,6 +1027,16 @@ class QuickJSVm extends Vm implements Disposable {
     }
   }
 
+  /// Set the max stack [size] this runtime allows.
+  ///
+  /// Set to `0` to remove the limit.
+  void setMaxStackSize(int size) {
+    if(size < 0) {
+      throw JSError('Cannot set max stack size to negative number.');
+    }
+    JS_RuntimeSetMaxStackSize(rt, size);
+  }
+
   /**
    * Set the max memory this runtime can allocate.
    * To remove the limit, set to `-1`.

@@ -147,8 +147,19 @@ final JS_RuntimeDisableInterruptHandler = dylib.lookupFunction<
     void Function(
         JSRuntimePointer rt)>("QJS_RuntimeDisableInterruptHandler");
 
+/// Max stack size. Set to 0 to no limit.
+///
+/// void QJS_RuntimeSetMaxStackSize(JSRuntime *rt, size_t stack_size)
+final JS_RuntimeSetMaxStackSize = dylib.lookupFunction<
+  Void Function(JSRuntimePointer, IntPtr),
+  void Function(JSRuntimePointer, int)
+>('QJS_RuntimeSetMaxStackSize');
+
+/// Memory limit. Set to -1 to disable.
+///
+/// void QJS_RuntimeSetMemoryLimit(JSRuntime *rt, size_t limit)
 final JS_RuntimeSetMemoryLimit = dylib.lookupFunction<
-    Void Function(JSRuntimePointer, Uint32),
+    Void Function(JSRuntimePointer, IntPtr),
     void Function(
         JSRuntimePointer rt, int limit)>("QJS_RuntimeSetMemoryLimit");
 

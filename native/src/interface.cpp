@@ -171,6 +171,13 @@ void QJS_RuntimeDisableInterruptHandler(JSRuntime *rt) {
  */
 
 /**
+ * Max stack size. Set to 0 to no limit.
+ */
+void QJS_RuntimeSetMaxStackSize(JSRuntime *rt, size_t stack_size) {
+  JS_SetMaxStackSize(rt, stack_size);
+}
+
+/**
  * Memory limit. Set to -1 to disable.
  */
 void QJS_RuntimeSetMemoryLimit(JSRuntime *rt, size_t limit) {
