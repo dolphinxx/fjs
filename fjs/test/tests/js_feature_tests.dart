@@ -387,9 +387,9 @@ export var pi = 3.141593
 
   static const ValueImport = r'''
 import * as math from "lib/math"
-console.log("2π = " + math.sum(math.pi, math.pi))
+expect("2π = " + math.sum(math.pi, math.pi), '2π = 6.283186')
 import { sum, pi } from "lib/math"
-console.log("2π = " + sum(pi, pi))
+expect("2π = " + sum(pi, pi), '2π = 6.283186')
   ''';
 
   static const DefaultAndWildcardExport = r'''
@@ -401,7 +401,7 @@ export default (x) => Math.exp(x)
 
   static const DefaultAndWildcardImport = r'''
 import exp, { pi, e } from "lib/mathplusplus"
-console.log("e^{π} = " + exp(pi))
+expect("e^{π} = " + exp(pi), 'e^{π} = 23.140700648952773')
   ''';
 
   static const ClassDefinitionAndInheritance = r'''

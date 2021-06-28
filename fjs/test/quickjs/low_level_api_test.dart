@@ -146,26 +146,5 @@ void main() {
       expect(vm.jsToDart(vm.getProperty(obj, 'msg')), 'Hello World!');
       expect(vm.jsToDart(vm.getProperty(obj, 'ov')), 'Greeting!');
     });
-    test('module_loader', () {
-      JS_SetModuleLoaderFunc(vm.rt, Pointer.fromFunction(moduleLoader, 0));
-      final actual = vm.evalAndConsume(r'''import { hello } from "greeting";
-      console.log(hello("Flutter"))''', (_) => vm.jsToDart(_));
-      expect(actual, 'Hello Flutter!');
-    }, skip: 'need to set eval flag to JS_EVAL_TYPE_MODULE to support `import` syntax');
   });
-}
-int moduleLoader(JSContextPointer ctx, Pointer<Pointer<Utf8>> buffPointer, Pointer<IntPtr> lenPointer, Pointer<Utf8> module_name) {
-  String moduleName = module_name.toDartString();
-  if(moduleName == 'greeting') {
-    print('loading module: $moduleName');
-    final source = r'''
-  export function hello(name) {
-    return `Hello ${name}!`;
-  }
-  '''.toNativeUtf8();
-    buffPointer[0] = source;
-    lenPointer.value = source.length;
-    return 1;
-  }
-  return 0;
 }

@@ -64,6 +64,7 @@ class QuickJSVm extends Vm implements Disposable {
   /// heap values created by this vm, and should be freed when this vm is disposed.
   final Set<JSValuePointer> _heapValues = Set();
   final List<Completer> _completers = [];
+  ES6ModuleLoader? es6ModuleLoader;
 
   QuickJSVm({
     bool? reserveUndefined,
@@ -109,6 +110,7 @@ class QuickJSVm extends Vm implements Disposable {
     _rtMap[rt] = this;
     _setupConsole();
     _setupSetTimeout();
+    _setupES6ModuleResolver();
     postConstruct();
   }
 
@@ -166,6 +168,10 @@ class QuickJSVm extends Vm implements Disposable {
     final clearTimeoutFn = newFunction('clearTimeout', clearTimeout);
     setProperty(global, 'clearTimeout', clearTimeoutFn);
     _freeJSValue(clearTimeoutFn);
+  }
+
+  void _setupES6ModuleResolver() {
+    JS_SetModuleLoaderFunc(rt, Pointer.fromFunction(_ES6ModuleLoader, 0));
   }
 
   /**
@@ -710,12 +716,12 @@ class QuickJSVm extends Vm implements Disposable {
    * a handle to the exception. If execution was interrupted, the error will
    * have name `InternalError` and message `interrupted`.
    */
-  JSValuePointer evalCode(String code, {String? filename}) {
+  JSValuePointer evalCode(String code, {String? filename, bool module = false}) {
     HeapCharPointer codeHandle = code.toNativeUtf8();
     HeapCharPointer filenameHandle = (filename??'<eval.js>').toNativeUtf8();
     late final resultPtr;
     try {
-      resultPtr = JS_Eval(ctx, codeHandle, codeHandle.length, filenameHandle, JSEvalFlag.GLOBAL);
+      resultPtr = JS_Eval(ctx, codeHandle, codeHandle.length, filenameHandle, module ? JSEvalFlag.MODULE : JSEvalFlag.GLOBAL);
     } finally {
       malloc.free(codeHandle);
       malloc.free(filenameHandle);
@@ -1290,5 +1296,21 @@ class QuickJSVm extends Vm implements Disposable {
   /// JSFreeArrayBufferDataFunc
   static void _cToHostArrayBufferFreeCallback(JSRuntimePointer rt, Pointer opaque, Pointer<Uint8> ptr) {
     malloc.free(ptr);
+  }
+
+  static int _ES6ModuleLoader(JSContextPointer ctx, Pointer<Pointer<Utf8>> buffPointer, Pointer<IntPtr> lenPointer, Pointer<Utf8> module_name) {
+    String moduleName = module_name.toDartString();
+    final vm = _vmMap[ctx];
+    if(vm == null || vm.es6ModuleLoader == null) {
+      return 0;
+    }
+    String? source = vm.es6ModuleLoader!(moduleName);
+    if(source == null) {
+      return 0;
+    }
+    final buff = source.toNativeUtf8();
+    buffPointer[0] = buff;
+    lenPointer.value = buff.length;
+    return 1;
   }
 }

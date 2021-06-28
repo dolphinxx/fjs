@@ -118,14 +118,25 @@ void main() {
     });
     group('ES6 Modules', () {
       test('ES6 ValueExportAndImport', () {
-        vm.evalCode(ES6Features.ValueExport);
-        vm.evalCode(ES6Features.ValueImport);
+        vm.es6ModuleLoader = (module) {
+          if(module == 'lib/math') {
+            return ES6Features.ValueExport;
+          }
+        };
+        vm.evalCode(ES6Features.ValueImport, module: true);
       });
       test('ES6 DefaultAndWildcard', () {
-        vm.evalCode(ES6Features.DefaultAndWildcardExport);
-        vm.evalCode(ES6Features.DefaultAndWildcardImport);
+        vm.es6ModuleLoader = (module) {
+          if(module == 'lib/math') {
+            return ES6Features.ValueExport;
+          }
+          if(module == 'lib/mathplusplus') {
+            return ES6Features.DefaultAndWildcardExport;
+          }
+        };
+        vm.evalCode(ES6Features.DefaultAndWildcardImport, module: true);
       });
-    }, skip: 'not yet implemented');
+    });
     group('ES6 Classes', () {
       test('ES6 ClassDefinitionAndInheritance', () {
         vm.evalCode(ES6Features.ClassDefinitionAndInheritance);

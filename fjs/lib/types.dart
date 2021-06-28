@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ffi';
 
 import 'package:ffi/ffi.dart';
@@ -60,5 +61,8 @@ typedef HeapUnicodeCharPointer = Pointer<Utf16>;
 /// Implementations should not free its arguments or its return value.
 /// It should not retain a reference to its return value or thrown error.
 typedef JSToDartFunction = JSValuePointer? Function(List<JSValuePointer> args, {JSValuePointer? thisObj});
+
+/// Return the source code as if in an imported file, or null if the [module] is not found
+typedef ES6ModuleLoader = String? Function(String module);
 
 const DART_UNDEFINED = #Undefined;

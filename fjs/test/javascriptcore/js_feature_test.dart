@@ -125,7 +125,7 @@ void main() {
         vm.evalCode(ES6Features.DefaultAndWildcardExport);
         vm.evalCode(ES6Features.DefaultAndWildcardImport);
       });
-    }, skip: 'not yet implemented');
+    }, skip: 'JavaScriptCore: not yet implemented');
     group('ES6 Classes', () {
       test('ES6 ClassDefinitionAndInheritance', () {
         vm.evalCode(ES6Features.ClassDefinitionAndInheritance);
