@@ -1,4 +1,4 @@
-﻿diff --git a/cutils.h b/cutils.h
+diff --git a/cutils.h b/cutils.h
 index 31f7cd8..8d9b4da 100644
 --- a/cutils.h
 +++ b/cutils.h
@@ -106,7 +106,7 @@ index 31f7cd8..8d9b4da 100644
  static inline uint64_t get_u64(const uint8_t *tab)
  {
 diff --git a/quickjs.c b/quickjs.c
-index 48aeffc..e7a8910 100644
+index 48aeffc..2a259fd 100644
 --- a/quickjs.c
 +++ b/quickjs.c
 @@ -28,7 +28,6 @@
@@ -166,7 +166,7 @@ index 48aeffc..e7a8910 100644
  #define DIRECT_DISPATCH  0
  #else
  #define DIRECT_DISPATCH  1
-@@ -70,7 +102,7 @@
+@@ -70,12 +102,12 @@
  /* define to include Atomics.* operations which depend on the OS
     threads */
  #if !defined(EMSCRIPTEN)
@@ -175,6 +175,12 @@ index 48aeffc..e7a8910 100644
  #endif
  
  #if !defined(EMSCRIPTEN)
+ /* enable stack limitation */
+-#define CONFIG_STACK_CHECK
++//#define CONFIG_STACK_CHECK
+ #endif
+ 
+ 
 @@ -1585,7 +1617,11 @@ static inline BOOL js_check_stack_overflow(JSRuntime *rt, size_t alloca_size)
  /* Note: OS and CPU dependent */
  static inline uintptr_t js_get_stack_pointer(void)

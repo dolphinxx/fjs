@@ -107,7 +107,7 @@ int gettimeofday(struct timeval * tp, struct timezone * tzp)
 
 #if !defined(EMSCRIPTEN)
 /* enable stack limitation */
-#define CONFIG_STACK_CHECK
+//#define CONFIG_STACK_CHECK
 #endif
 
 
