@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fjs/module.dart';
 import 'package:fjs/vm.dart';
 import 'package:test/test.dart';
@@ -52,4 +54,26 @@ testAsync(Vm vm) async {
   final actualStr = await Future.value(actual);
   expect(actualStr, 'Hello Flutter!');
   print(actualStr);
+}
+
+testUniversal(Vm vm) async {
+  vm.registerModuleResolver('greeting', (vm, path, version) => vm.newFunction('greeting', (args, {thisObj}) => vm.dartToJS('Hello ${vm.jsToDart(args[0])}!')));
+  vm.registerModuleResolver('', (vm, path, version) {
+    File file = File('test/modules/${path.join("/")}.js');
+    if(file.existsSync()) {
+      String source = file.readAsStringSync();
+      return vm.evalCode('var exports = {};$source;exports', filename: '<${path.join("/")}.js>');
+    }
+    return vm.$undefined;
+  });
+  var actual = vm.jsToDart(vm.evalCode('''
+  const greeting = require('greeting');
+  greeting("Flutter");
+  '''));
+  expect(actual, "Hello Flutter!");
+  actual = vm.jsToDart(vm.evalCode('''
+  const {plus} = require('plus');
+  plus(1, 2);
+  '''));
+  expect(actual, 3);
 }

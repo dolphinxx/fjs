@@ -11,6 +11,7 @@ import 'javascriptcore/vm.dart';
 import 'types.dart';
 export 'types.dart';
 
+/// This function should return [Vm.$undefined] if the module is failed to resolve.
 typedef ModuleResolver = JSValuePointer Function(Vm vm, List<String> path, String? version);
 
 abstract class Vm {
@@ -121,6 +122,7 @@ abstract class Vm {
 
   Map<String, FlutterJSModule> _moduleMap = {};
   Map<String, ModuleResolver> _moduleResolverMap = {};
+  ModuleResolver? _universalModuleResolver;
   void _setupModuleResolver() {
     final requireFn = newFunction('require', (args, {thisObj}) {
       String raw = jsToDart(args[0]);
@@ -142,11 +144,14 @@ abstract class Vm {
         }
         moduleName = path[0];
       }
-      if(_moduleMap.containsKey(moduleName)) {
+      if (_moduleMap.containsKey(moduleName)) {
         return _moduleMap[moduleName]!.resolve(this, path, version);
       }
-      if(_moduleResolverMap.containsKey(moduleName)) {
+      if (_moduleResolverMap.containsKey(moduleName)) {
         return _moduleResolverMap[moduleName]!(this, path, version);
+      }
+      if (_universalModuleResolver != null) {
+        return _universalModuleResolver!(this, path, version);
       }
       return $undefined;
     });
@@ -169,6 +174,10 @@ abstract class Vm {
   }
 
   void registerModuleResolver(String name, ModuleResolver resolver) {
+    if (name.isEmpty || name == '*') {
+      _universalModuleResolver = resolver;
+      return;
+    }
     _moduleResolverMap[name] = resolver;
   }
 

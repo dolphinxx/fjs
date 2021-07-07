@@ -19,5 +19,8 @@ void main() {
     test('JavaScriptCore module_loader async', () async {
       await testAsync(vm);
     });
+    test('JavaScriptCore module_loader universal', () async {
+      await testUniversal(vm);
+    });
   });
 }

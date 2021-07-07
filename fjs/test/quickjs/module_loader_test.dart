@@ -12,11 +12,14 @@ void main() {
     tearDown(() {
       vm.dispose();
     });
-    test('JavaScriptCore module_loader simple', () {
+    test('QuickJS module_loader simple', () {
       testSimple(vm);
     });
-    test('JavaScriptCore module_loader async', () async {
+    test('QuickJS module_loader async', () async {
       await testAsync(vm);
+    });
+    test('QuickJS module_loader universal', () async {
+      await testUniversal(vm);
     });
   });
 }
