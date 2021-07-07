@@ -182,6 +182,9 @@ Future<NativeResponse> send(
   if(verbose) {
     print('> ${ioRequest.method.toUpperCase()} ${ioRequest.uri}\n');
     ioRequest.headers.forEach((name, values) => print('> $name: ${values.join(", ")}'));
+    if(httpOptions['body'] is String && httpOptions['body'].length < 1024) {
+      print('> ${httpOptions["body"]}');
+    }
   }
 
   HttpClientResponse response = await ioRequest.close();
