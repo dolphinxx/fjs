@@ -8,7 +8,7 @@
 PRODUCT_NAME = fjs_example
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = io.abner.flutterJsExample
+PRODUCT_BUNDLE_IDENTIFIER = com.whaleread.flutterJsExample
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2021 io.abner. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2021 whaleread.com. All rights reserved.
