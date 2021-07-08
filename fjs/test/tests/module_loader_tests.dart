@@ -76,4 +76,13 @@ testUniversal(Vm vm) async {
   plus(1, 2);
   '''));
   expect(actual, 3);
+  actual = vm.jsToDart(vm.evalCode('''
+  const minus = require('minus');
+  minus(3, 2);
+  '''));
+  expect(actual, 1);
+  actual = vm.jsToDart(vm.evalCode('''
+  require('foo');
+  '''));
+  expect(actual, isNull);
 }
