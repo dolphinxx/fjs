@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:fjs_example/es6_features.dart';
 import 'package:fjs_example/isolate.dart';
 import 'package:flutter/material.dart';
 import 'package:fjs/vm.dart';
@@ -93,6 +94,10 @@ class _FlutterJsHomeScreenState extends State<FlutterJsHomeScreen> {
                 ElevatedButton(
                   child: const Text('Multiple'),
                   onPressed: () => Navigator.of(context).push(PageRouteBuilder(pageBuilder: (ctx, _, __) => MultipleVmExample())),
+                ),
+                ElevatedButton(
+                  child: const Text('ES6'),
+                  onPressed: () => Navigator.of(context).push(PageRouteBuilder(pageBuilder: (ctx, _, __) => ES6FeaturesCheck())),
                 ),
               ],
             ),
