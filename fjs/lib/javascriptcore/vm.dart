@@ -731,7 +731,12 @@ return 0
         completer.completeError(JSError.wrap(error));
       });
       _completers.add(completer);
-      callFunction(thenPtr, value, [onFulfilled, onError]);
+      try {
+        callVoidFunction(thenPtr, value, [onFulfilled, onError]);
+      } catch(e, s) {
+        _completers.remove(completer);
+        completer.completeError(JSError.wrap(e, s));
+      }
       // complete when the promise is resolved/rejected.
       return completer.future;
     }
