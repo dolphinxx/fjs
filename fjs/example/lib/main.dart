@@ -40,9 +40,9 @@ class _FlutterJsHomeScreenState extends State<FlutterJsHomeScreen> {
                   this._id = id;
                 }
 
-                get id() => this._id;
+                get id() {return this._id;}
 
-                set id(id) => this._id = id;
+                set id(id) {this._id = id;}
               }
             }
             var obj = new MyClass(1);
