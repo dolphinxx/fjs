@@ -129,6 +129,7 @@ class _FlutterJsHomeScreenState extends State<FlutterJsHomeScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           FloatingActionButton(
+            heroTag: Object(),
             backgroundColor: Colors.amber,
             child: Text('Eval', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),),
             onPressed: () async {
@@ -139,6 +140,7 @@ class _FlutterJsHomeScreenState extends State<FlutterJsHomeScreen> {
           ),
           const Padding(padding: EdgeInsets.only(top: 6),),
           FloatingActionButton(
+            heroTag: Object(),
             backgroundColor: Colors.amber,
             child: Text('Isolate', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),),
             onPressed: () async {
