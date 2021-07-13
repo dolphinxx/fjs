@@ -105,7 +105,7 @@ class JavaScriptCoreVm extends Vm implements Disposable {
           disableConsoleInRelease: disableConsoleInRelease,
           hideStackInRelease: hideStackInRelease,
         ) {
-    ctx = jSGlobalContextCreate(nullptr);
+    ctx = jSGlobalContextRetain(jSGlobalContextCreate(nullptr));
     _scope.manage(Lifetime<JSContextRef>(ctx, (_) {
       jSGlobalContextRelease(_);
     }));
@@ -348,7 +348,7 @@ return 0
   /// Converts [value] into JS String.
   ///
   /// jSStringRelease
-  JSStringRef newStringRef(String value) {
+  static JSStringRef newStringRef(String value) {
     Pointer<Utf8> ptr = value.toNativeUtf8();
     final strVal = jSStringCreateWithUTF8CString(ptr);
     calloc.free(ptr);
@@ -943,10 +943,17 @@ return 0
       int argumentCount,
       JSValueRefArray arguments,
       JSValueRefRef exception) {
-    final vm = _vmMap[ctx];
+    var vm = _vmMap[ctx];
     if(vm == null) {
-      throw JSError(
-          'JavaScriptCoreVm(ctx = ${ctx}) not found for C function call "${function}"');
+      JSContextRef _ctx = jSContextGetGlobalContext(ctx);
+      vm = _vmMap[_ctx];
+    }
+    if(vm == null) {
+      JSStringRef strRef = newStringRef('JavaScriptCoreVm(ctx = ${ctx}) not found for C function call "${function}"');
+      final error = jSValueMakeString(ctx, strRef);
+      jSStringRelease(strRef);
+      exception[0] = error;
+      return nullptr;
     }
     return vm.cToHostCallbackFunction(ctx, thisObject, argumentCount, arguments, exception);
   }
