@@ -124,6 +124,8 @@ There is a prebuilt [libquckjs.dll](../fjs_windows/windows/shared/libquckjs.dll)
 As mentioned [here](https://flutter.dev/docs/development/platform-integration/c-interop#platform-library),
 you need to add `JavaScriptCore` library in Xcode.
 
+![alt Add JavaScriptCore.framework](./add_javascriptcore_framework.png)
+
 ##### Windows
 
 In order to run `JavaScriptCore` on Windows, you need to setup a runnable `JavaScriptCore` in your `PATH`.
