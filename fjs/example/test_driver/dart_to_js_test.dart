@@ -103,7 +103,7 @@ void main() {
         'group': 'dart2js',
         'dartType': 'function',
         'code':
-            r'''if(typeof test !== 'function' || test('Flutter') != 'Hello Flutter!') throw "error"''',
+            r'''if(typeof test !== 'function') throw "expect a function, actual " + typeof test;var _ = test('Flutter');if(_ !== 'Hello Flutter!') throw "expect " + "\"Hello Flutter!\", actual \"" + _ + "\""''',
       });
     });
     test('date values', () async {
