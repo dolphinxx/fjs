@@ -79,7 +79,11 @@ class _ES6FeaturesCheckState extends State<ES6FeaturesCheck> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        actions: [
+          IconButton(onPressed: () => runAll(), icon: Icon(Icons.clear_all_outlined))
+        ],
+      ),
       body: ListView(
         children: data.map((_) => ListTile(
           title: Text(_[0]),
@@ -97,7 +101,13 @@ class _ES6FeaturesCheckState extends State<ES6FeaturesCheck> {
     return result == true ? Colors.green : Colors.red;
   }
 
-  void eval(String name, String code) async {
+  void runAll() async {
+    data.forEach((_) {
+      eval(_[0], _[1]);
+    });
+  }
+
+  Future<void> eval(String name, String code) async {
     Vm? vm;
     try {
       vm = Vm.create();
