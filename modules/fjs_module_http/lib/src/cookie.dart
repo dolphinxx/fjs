@@ -111,10 +111,14 @@ class CookieWrapper {
   }
 }
 
+typedef InMemoryCookieListener = void Function();
+
 /// A simple in-memory [CookieManager].
 class InMemoryCookieManager implements CookieManager {
   final Map<_Domain, List<CookieWrapper>> domainCookies = {};
   final Map<_Host, List<CookieWrapper>> hostCookies = {};
+
+  InMemoryCookieListener? listener;
 
   InMemoryCookieManager();
 
@@ -155,12 +159,14 @@ class InMemoryCookieManager implements CookieManager {
         });
       }
     });
+    notifyListener();
   }
 
   @override
   void deleteAll() {
     hostCookies.clear();
     domainCookies.clear();
+    notifyListener();
   }
 
   @override
@@ -208,6 +214,7 @@ class InMemoryCookieManager implements CookieManager {
         });
       }
     });
+    notifyListener();
   }
 
   @override
@@ -344,11 +351,18 @@ class InMemoryCookieManager implements CookieManager {
   void _setCookie(List<CookieWrapper> cookies, Cookie cookie) {
     cookies.removeWhere((_) => _isCookieEqual(_.cookie, cookie));
     cookies.add(CookieWrapper(cookie));
+    notifyListener();
   }
 
   /// test whether [cookie1] and [cookie2] are identical, check domain, path, secure, name
   bool _isCookieEqual(Cookie cookie1, Cookie cookie2) {
     return cookie1.name == cookie2.name && cookie1.domain == cookie2.domain && cookie1.path == cookie2.path && cookie1.secure == cookie2.secure;
+  }
+
+  void notifyListener() {
+    if(listener != null) {
+      listener!();
+    }
   }
 
   String stringify() {
