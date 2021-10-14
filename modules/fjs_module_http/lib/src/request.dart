@@ -214,15 +214,21 @@ Future<NativeResponse> send(
     responseHeaders[key.toLowerCase()] = values.join(',');
   });
 
-  if(!forceEncoding && responseHeaders.containsKey('content-type')) {
-    String? responseEncoding = MediaType.parse(responseHeaders['content-type']!).parameters['charset'];
-    if(responseEncoding != null) {
-      encoding = encodingMap[responseEncoding]?? Encoding.getByName(responseEncoding)??encoding;
+  String? responseContentType;
+  MediaType? responseMediaType = responseHeaders.containsKey('content-type') ? MediaType.parse(responseHeaders['content-type']!) : null;
+  if(responseMediaType != null) {
+    responseContentType = responseMediaType.subtype;
+    if(!forceEncoding) {
+      String? responseEncoding = responseMediaType.parameters['charset'];
+      if(responseEncoding != null) {
+        encoding = encodingMap[responseEncoding]?? Encoding.getByName(responseEncoding)??encoding;
+      }
     }
   }
   List<int> bytes = await response.fold(<int>[], (previous, element) => previous..addAll(element));
   String body = await encoding.decode(bytes);
-  if(!forceEncoding) {
+  if(!forceEncoding && (responseContentType == 'html' || (responseContentType == null && mediaType?.subtype == 'html'))) {
+    // charset from html meta tag
     String? charset = getCharsetFromHTML(body);
     if(charset != null && charset != encoding.name) {
       encoding = encodingMap[charset];
