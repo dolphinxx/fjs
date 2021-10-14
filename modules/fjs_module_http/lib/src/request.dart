@@ -91,7 +91,18 @@ String encodeBody(dynamic body, MediaType? contentType) {
 }
 
 String? getCharsetFromHTML(String html) {
-  RegExpMatch? match = RegExp(r'''<meta charset=['"]([^'"]+)['"]''', caseSensitive: false).firstMatch(html);
+  int bodyIndex = html.indexOf('<body');
+  if(bodyIndex == -1) {
+    bodyIndex = html.indexOf('<BODY');
+  }
+  if(bodyIndex == -1) {
+    return null;
+  }
+  String head = html.substring(0, bodyIndex);
+  RegExpMatch? match = RegExp(r'''<meta [^>]*charset=['"]([^'"]+)['"]''', caseSensitive: false).firstMatch(head);
+  if(match == null) {
+    match = RegExp(r'''<meta [^>]*http-equiv=["']Content-Type["'] [^>]*content=["'][^"']+charset=([^"']+)["']''', caseSensitive: false).firstMatch(head);
+  }
   if(match == null) {
     return null;
   }
@@ -227,7 +238,7 @@ Future<NativeResponse> send(
   }
   List<int> bytes = await response.fold(<int>[], (previous, element) => previous..addAll(element));
   String body = await encoding.decode(bytes);
-  if(!forceEncoding && (responseContentType == 'html' || (responseContentType == null && mediaType?.subtype == 'html'))) {
+  if(!forceEncoding && clientOptions['htmlPreferMetaCharset'] == true && (responseContentType == 'html' || (responseContentType == null && mediaType?.subtype == 'html'))) {
     // charset from html meta tag
     String? charset = getCharsetFromHTML(body);
     if(charset != null && charset != encoding.name) {

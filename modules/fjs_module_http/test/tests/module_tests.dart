@@ -52,7 +52,7 @@ testUnknownEncoding(Vm vm, HttpServer server) async {
     }
     return false;
   };
-  final source = '''require('http').send('http://${server.address.address}:${server.port}/ok')''';
+  final source = '''require('http').send('http://${server.address.address}:${server.port}/ok', {htmlPreferMetaCharset: true})''';
   print(source);
   vm.startEventLoop();
   final response = await vm.jsToDart(vm.evalCode(source, filename: '<test>'));

@@ -96,6 +96,11 @@ type FlutterJSHttpModuleClientOptions = {
    */
   preventDefaultHeaders?: boolean;
   /**
+   * Prefer the charset specified in the html meta tag.
+   * Default false.
+   */
+  htmlPreferMetaCharset?: boolean;
+  /**
    * Custom options
    */
   [x:string]:any;
