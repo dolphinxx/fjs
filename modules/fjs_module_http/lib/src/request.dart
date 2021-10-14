@@ -90,6 +90,14 @@ String encodeBody(dynamic body, MediaType? contentType) {
   return body.toString();
 }
 
+String? getCharsetFromHTML(String html) {
+  RegExpMatch? match = RegExp(r'''<meta charset=['"]([^'"]+)['"]''', caseSensitive: false).firstMatch(html);
+  if(match == null) {
+    return null;
+  }
+  return match[1]!.toLowerCase();
+}
+
 Future<NativeResponse> send(
     HttpClient client,
     Map httpOptions,
@@ -212,7 +220,18 @@ Future<NativeResponse> send(
       encoding = encodingMap[responseEncoding]?? Encoding.getByName(responseEncoding)??encoding;
     }
   }
-  dynamic body = await encoding.decodeStream(response);
+  List<int> bytes = await response.fold(<int>[], (previous, element) => previous..addAll(element));
+  String body = await encoding.decode(bytes);
+  if(!forceEncoding) {
+    String? charset = getCharsetFromHTML(body);
+    if(charset != null && charset != encoding.name) {
+      encoding = encodingMap[charset];
+      if(encoding != null) {
+        body = await encoding.decode(bytes);
+      }
+    }
+  }
+
 
   List<EncodableRedirectInfo> redirects = [];
   if(response.redirects.isNotEmpty) {

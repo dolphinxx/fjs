@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:fast_gbk/fast_gbk.dart';
 import 'package:fjs/quickjs/vm.dart';
 import 'package:fjs/vm.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,7 +17,7 @@ void main() {
     late HttpServer server;
     setUp(() async {
       vm = QuickJSVm();
-      vm.registerModule(FlutterJSHttpModule());
+      vm.registerModule(FlutterJSHttpModule(encodingMap: {'gbk': GbkCodec(allowMalformed: true)}));
       server = await serve();
     });
     tearDown(() {
@@ -27,6 +28,9 @@ void main() {
     });
     test('simplest', () async {
       await testSimplest(vm, server);
+    }, timeout: Timeout(Duration(seconds: 100)));
+    test('unknownEncoding', () async {
+      await testUnknownEncoding(vm, server);
     }, timeout: Timeout(Duration(seconds: 100)));
     test('400', () async {
       await test400(vm, server);

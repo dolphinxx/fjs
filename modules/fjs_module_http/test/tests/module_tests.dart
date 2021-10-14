@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:fast_gbk/fast_gbk.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fjs/vm.dart';
 import '../test_server.dart';
@@ -32,6 +34,41 @@ testSimplest(Vm vm, HttpServer server) async {
     'reasonPhrase': 'OK',
     'statusCode': 200,
     'body': 'OK!',
+    'redirects': [],
+  });
+}
+
+testUnknownEncoding(Vm vm, HttpServer server) async {
+  Codec codec = GbkCodec(allowMalformed: true);
+  String html = '''<!DOCTYPE html><html><head><meta charset="gbk" /></head><body><h1>世界你好！</h1></body></html>''';
+  List<int> bytes = codec.encode(html);
+  requestHandler = (request, response) async {
+    if (request.requestedUri.path == '/ok') {
+      response.headers.set('content-type', 'text/html');
+      response.contentLength = bytes.length;
+      response.statusCode = 200;
+      response.add(bytes);
+      return true;
+    }
+    return false;
+  };
+  final source = '''require('http').send('http://${server.address.address}:${server.port}/ok')''';
+  print(source);
+  vm.startEventLoop();
+  final response = await vm.jsToDart(vm.evalCode(source, filename: '<test>'));
+  expect(response, {
+    'headers': {
+      'x-frame-options': 'SAMEORIGIN',
+      'content-type': 'text/html',
+      'x-xss-protection': '1; mode=block',
+      'x-content-type-options': 'nosniff',
+      'content-length': '${bytes.length}'
+    },
+    'isRedirect': false,
+    'persistentConnection': true,
+    'reasonPhrase': 'OK',
+    'statusCode': 200,
+    'body': '$html',
     'redirects': [],
   });
 }
