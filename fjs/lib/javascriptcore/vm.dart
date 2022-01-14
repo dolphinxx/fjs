@@ -124,6 +124,7 @@ class JavaScriptCoreVm extends Vm implements Disposable {
         nullptr,
         Pointer.fromFunction(_cToHostCallbackFunction),
     );
+    _protect(functionObject);
     // apply the function to globalThis
     runWithExceptionHandle((exception) => jSObjectSetProperty(
         ctx,
@@ -470,10 +471,11 @@ return 0
       calloc.free(reject);
       throw error;
     }
+    _protect(promise);
     // in case promise is not resolved/rejected, and not disposed.
     final promiseWrapper = _scope.manage(JSDeferredPromise(
       this,
-      Lifetime(promise),
+      Lifetime(promise, (_) => _unprotect(promise)),
       Lifetime(resolve[0], (_) =>calloc.free(resolve)),
       Lifetime(reject[0], (_) => calloc.free(reject)),
       future,
