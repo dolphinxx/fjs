@@ -150,7 +150,7 @@ class FlutterJSHttpModule implements FlutterJSModule{
     _abortControllers[requestId] = _abortController;
     HttpClient client = httpClientProvider();
     try {
-      return await send(client, httpOptions, clientOptions, cacheProvider: cacheProvider, cookieManager: cookieManager, encodingMap: _encodingMap, abortController: _abortController, beforeSendInterceptor: beforeSendInterceptor, requestInterceptor: requestInterceptor, responseInterceptor: responseInterceptor, verbose: verbose);
+      return (await send(client, httpOptions, clientOptions, cacheProvider: cacheProvider, cookieManager: cookieManager, encodingMap: _encodingMap, abortController: _abortController, beforeSendInterceptor: beforeSendInterceptor, requestInterceptor: requestInterceptor, responseInterceptor: responseInterceptor, verbose: verbose)).toMap();
     } catch(err, stackTrace) {
       if(err is HttpException) {
         return {"statusCode": err is AbortException ? 308 : 0, "reasonPhrase": err.message};
