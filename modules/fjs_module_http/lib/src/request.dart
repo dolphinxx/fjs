@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:brotli/brotli.dart';
+
 import 'abort_controller.dart';
 
 import 'cache.dart';
@@ -76,6 +78,14 @@ String mapToQuery(Map map, {Encoding? encoding}) {
     ]);
   });
   return pairs.map((pair) => '${pair[0]}=${pair[1]}').join('&');
+}
+
+bool isBrotliEncoding(HttpHeaders headers) {
+  List<String>? values = headers[HttpHeaders.contentEncodingHeader];
+  if (values == null || values.isEmpty) {
+    return false;
+  }
+  return values.first.toLowerCase() == 'br';
 }
 
 String encodeBody(dynamic body, MediaType? contentType) {
@@ -236,7 +246,11 @@ Future<NativeResponse> send(
       }
     }
   }
-  List<int> bytes = await response.fold(<int>[], (previous, element) => previous..addAll(element));
+  Stream<List<int>> stream = response;
+  if(client.autoUncompress == true && isBrotliEncoding(response.headers)) {
+    stream = brotli.decoder.bind(stream);
+  }
+  List<int> bytes = await stream.fold(<int>[], (previous, element) => previous..addAll(element));
   String body = await encoding.decode(bytes);
   if(!forceEncoding && clientOptions['htmlPreferMetaCharset'] == true && (responseContentType == 'html' || (responseContentType == null && mediaType?.subtype == 'html'))) {
     // charset from html meta tag

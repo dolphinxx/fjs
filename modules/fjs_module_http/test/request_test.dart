@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:fast_gbk/fast_gbk.dart';
 import 'package:fjs_module_http/src/request.dart';
@@ -202,4 +203,115 @@ void main() {
       expect(actual, isNull);
     });
   });
+  group('isBrotliEncoding', () {
+    test('empty headers', () {
+      final actual = isBrotliEncoding(_MockHttpHeaders({}));
+      expect(actual, isFalse);
+    });
+    test('empty value', () {
+      final actual = isBrotliEncoding(_MockHttpHeaders({
+        'content-encoding': [],
+      }));
+      expect(actual, isFalse);
+    });
+    test('missing', () {
+      final actual = isBrotliEncoding(_MockHttpHeaders({
+        'content-type': ['text/html; charset=gb2312'],
+      }));
+      expect(actual, isFalse);
+    });
+    test('gzip', () {
+      final actual = isBrotliEncoding(_MockHttpHeaders({
+        'content-encoding': ['gzip'],
+      }));
+      expect(actual, isFalse);
+    });
+    test('lowercase', () {
+      final actual = isBrotliEncoding(_MockHttpHeaders({
+        'content-encoding': ['br'],
+      }));
+      expect(actual, isTrue);
+    });
+    test('uppercase', () {
+      final actual = isBrotliEncoding(_MockHttpHeaders({
+        'content-encoding': ['BR'],
+      }));
+      expect(actual, isTrue);
+    });
+    test('send', () async {
+      final response = await send(
+          HttpClient(),
+          {
+            'url': 'https://m.23hh.com/book/6/6727/',
+            'headers': {
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+              'Accept-Encoding': 'gzip, deflate, br',
+              'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+              'Cache-Control': 'max-age=0',
+              'Connection': 'keep-alive',
+              'Upgrade-Insecure-Requests': '1',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36'
+            },
+          },
+          {},
+          encodingMap: {
+            'gb2312': const GbkCodec(allowMalformed: true),
+          },
+          verbose: true);
+      print(response.body);
+      expect(response.body, contains('<html'));
+    });
+  });
+}
+
+class _MockHttpHeaders extends HttpHeaders {
+  Map<String, List<String>> _data;
+
+  _MockHttpHeaders(this._data);
+
+  @override
+  List<String>? operator [](String name) {
+    return _data[name];
+  }
+
+  @override
+  void add(String name, Object value, {bool preserveHeaderCase = false}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void clear() {
+    throw UnimplementedError();
+  }
+
+  @override
+  void forEach(void Function(String name, List<String> values) action) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void noFolding(String name) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void remove(String name, Object value) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void removeAll(String name) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void set(String name, Object value, {bool preserveHeaderCase = false}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  String? value(String name) {
+    throw UnimplementedError();
+  }
+
 }
