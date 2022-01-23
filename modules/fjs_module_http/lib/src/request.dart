@@ -152,12 +152,12 @@ Future<NativeResponse> send(
   Encoding? encoding;
   if(clientOptions.containsKey('encoding') && clientOptions['encoding'].endsWith('!')) {
     // force encoding
-    String _encoding = clientOptions['encoding'].substring(0, clientOptions['encoding'].length - 1);
+    String _encoding = clientOptions['encoding'].substring(0, clientOptions['encoding'].length - 1).toLowerCase();
     encoding = encodingMap[_encoding] ?? requiredEncodingForCharset(_encoding);
     forceEncoding = true;
   } else {
     // prefer charset in content-type than encoding in clientOptions.
-    String? _encoding = mediaType?.parameters['charset']?? clientOptions['encoding'];
+    String? _encoding = mediaType?.parameters['charset']?? clientOptions['encoding']?.toLowerCase();
     encoding = _encoding == null ? const Utf8Codec(allowMalformed: true) : encodingMap[_encoding]?? requiredEncodingForCharset(_encoding);
   }
 
@@ -240,7 +240,7 @@ Future<NativeResponse> send(
   if(responseMediaType != null) {
     responseContentType = responseMediaType.subtype;
     if(!forceEncoding) {
-      String? responseEncoding = responseMediaType.parameters['charset'];
+      String? responseEncoding = responseMediaType.parameters['charset']?.toLowerCase();
       if(responseEncoding != null) {
         encoding = encodingMap[responseEncoding]?? Encoding.getByName(responseEncoding)??encoding;
       }
@@ -254,7 +254,7 @@ Future<NativeResponse> send(
   String body = await encoding.decode(bytes);
   if(!forceEncoding && clientOptions['htmlPreferMetaCharset'] == true && (responseContentType == 'html' || (responseContentType == null && mediaType?.subtype == 'html'))) {
     // charset from html meta tag
-    String? charset = getCharsetFromHTML(body);
+    String? charset = getCharsetFromHTML(body)?.toLowerCase();
     if(charset != null && charset != encoding.name) {
       encoding = encodingMap[charset];
       if(encoding != null) {
