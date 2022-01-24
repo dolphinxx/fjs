@@ -179,7 +179,7 @@ Future<NativeResponse> send(
   abortController?.attach(ioRequest);
   // copy headers
   requestHeaders.forEach((key, value) {
-    ioRequest.headers.add(key, value);
+    ioRequest.headers.set(key, value);
   });
   if(httpOptions.containsKey('followRedirects')) {
     ioRequest.followRedirects = parseBool(httpOptions['followRedirects']);
