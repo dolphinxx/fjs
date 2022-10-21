@@ -136,3 +136,25 @@ testObjectValues(Vm vm) {
           r'''({a:1,b:"2", 'c':[1, 2, {regex: /.*/, 'Symbol': Symbol(1), 2: 'number prop name'}, ]})''')),
       expected);
 }
+
+testFunctionInMap(Vm vm) {
+  // var map = vm.jsToDart(vm.evalCode(r'''({fn: ((name) => `Hi, ${name}!`)})'''));
+  // var fn = map['fn'] as JSToDartFunction;
+  // var result = fn([vm.dartToJS('Flutter')])!
+  var map = vm.evalCode(r'''({fn: ((name) => `Hi, ${name}!`)})''');
+  var dartMap = vm.jsToDart(map);
+  var f = vm.getProperty(map, 'fn');
+  var dartFn = dartMap['fn'] as JSToDartFunction;
+  var result = vm.callFunction(f, vm.nullThis, [vm.dartToJS('Flutter')]);
+  expect(vm.jsToDart(result), "Hi, Flutter!");
+  var result1 = dartFn([vm.dartToJS('Flutter')])!;
+  expect(vm.jsToDart(result1), "Hi, Flutter!");
+}
+
+testPromiseInMap(Vm vm) async {
+  vm.startEventLoop();
+  var map = vm.jsToDart(vm.evalCode(r'''({promise: (new Promise((resolve, reject) => resolve("Hello World!")))})'''));
+  var promise = map['promise'] as Future;
+  var value = await promise;
+  expect(value, 'Hello World!');
+}

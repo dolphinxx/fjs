@@ -834,8 +834,9 @@ class QuickJSVm extends Vm implements Disposable {
       return JS_ToBool(ctx, value) == 1;
     }
     if(type == JSHandyType.js_function) {
+      var fn = dupRef(value);
       return (List<JSValuePointer> args, {JSValuePointer? thisObj}) {
-        return callFunction(value, thisObj??nullptr, args)/*.consume((_) => jsToDart(_.value))*/;
+        return callFunction(fn, thisObj??nullThis, args)/*.consume((_) => jsToDart(_.value))*/;
       };
     }
     if(type == JSHandyType.js_Date) {

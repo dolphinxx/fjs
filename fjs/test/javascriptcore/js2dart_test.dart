@@ -46,5 +46,11 @@ void main() {
     test('object values', () {
       testObjectValues(vm);
     });
+    test('function in map', () {
+      testFunctionInMap(vm);
+    });
+    test('promise in map', () async {
+      await testPromiseInMap(vm);
+    });
   });
 }
