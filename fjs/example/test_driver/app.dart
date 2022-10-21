@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
-import 'package:ffi/ffi.dart';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -177,7 +175,7 @@ Future<void> testJSToDart(Map options) async {
 }
 
 Future<void> testSetTimeout(Map options) async {
-  Vm vm = Vm.create(disableConsoleInRelease: false);
+  Vm vm = Vm.create(disableConsole: false);
   String code = options['code'];
   applyVmOptions(vm, options);
   try {

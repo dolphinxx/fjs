@@ -155,7 +155,7 @@ class _FlutterJsHomeScreenState extends State<FlutterJsHomeScreen> {
   }
 
   Future evalCode(String code) async {
-    final Vm vm = Vm.create(disableConsoleInRelease: false);
+    final Vm vm = Vm.create(disableConsole: false);
     try {
       vm.startEventLoop();
       dynamic result = vm.jsToDart(vm.evalCode(code));;

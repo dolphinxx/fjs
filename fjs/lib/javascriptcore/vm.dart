@@ -4,11 +4,8 @@ import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
-import 'package:fjs/quickjs/qjs_ffi.dart';
-import 'package:flutter/foundation.dart';
 import '../error.dart';
 import '../lifetime.dart';
-import '../promise.dart';
 import '../vm.dart';
 import './binding/js_base.dart';
 import './binding/js_context_ref.dart';
@@ -96,14 +93,14 @@ class JavaScriptCoreVm extends Vm implements Disposable {
     bool? reserveUndefined,
     bool? jsonSerializeObject,
     bool? constructDate,
-    bool? disableConsoleInRelease,
-    bool? hideStackInRelease,
+    bool? disableConsole,
+    bool? hideStack,
   }) : super(
           reserveUndefined: reserveUndefined,
           jsonSerializeObject: jsonSerializeObject,
           constructDate: constructDate,
-          disableConsoleInRelease: disableConsoleInRelease,
-          hideStackInRelease: hideStackInRelease,
+          disableConsole: disableConsole,
+          hideStack: hideStack,
         ) {
     ctx = jSGlobalContextRetain(jSGlobalContextCreate(nullptr));
     _scope.manage(Lifetime<JSContextRef>(ctx, (_) {
@@ -182,7 +179,7 @@ return 0
     final JSValueRef console = newObject();
     setProperty(global, 'console', console);
     JSToDartFunction logFn = (List<JSValuePointer> args, {JSValuePointer? thisObj}) {
-      if(disableConsoleInRelease && kReleaseMode) {
+      if(disableConsole) {
         return;
       }
       if(_disposed) {
@@ -419,7 +416,7 @@ return 0
     if (error is JSError) {
       message = error.message;
       name = error.name;
-      if(!hideStackInRelease || !kReleaseMode) {
+      if(!hideStack) {
         stack = error.stackTrace.toString();
       }
     } else {

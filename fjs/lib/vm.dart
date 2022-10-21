@@ -23,10 +23,10 @@ abstract class Vm {
   bool constructDate = true;
 
   /// Disable Console.log when `kReleaseMode == true`
-  bool disableConsoleInRelease = true;
+  bool disableConsole = true;
 
   /// Hide stackTrace in [newError] when `kReleaseMode == true`
-  bool hideStackInRelease = true;
+  bool hideStack = true;
 
   /// Set to true to use JS_ArrayBufferCopy to construct an ArrayBuffer.
   bool arrayBufferCopy = false;
@@ -35,30 +35,30 @@ abstract class Vm {
     bool? reserveUndefined,
     bool? jsonSerializeObject,
     bool? constructDate,
-    bool? disableConsoleInRelease,
-    bool? hideStackInRelease,
+    bool? disableConsole,
+    bool? hideStack,
     bool? arrayBufferCopy,
   })  : reserveUndefined = reserveUndefined ?? false,
         jsonSerializeObject = jsonSerializeObject ?? false,
         constructDate = constructDate ?? true,
-        disableConsoleInRelease = disableConsoleInRelease ?? true,
-        hideStackInRelease = hideStackInRelease ?? true,
+        disableConsole = disableConsole ?? true,
+        hideStack = hideStack ?? true,
         arrayBufferCopy = arrayBufferCopy ?? false;
 
   factory Vm.QuickJS({
     bool? reserveUndefined,
     bool? jsonSerializeObject,
     bool? constructDate,
-    bool? disableConsoleInRelease,
-    bool? hideStackInRelease,
+    bool? disableConsole,
+    bool? hideStack,
     bool? arrayBufferCopy,
   }) {
     return QuickJSVm(
       reserveUndefined: reserveUndefined,
       jsonSerializeObject: jsonSerializeObject,
       constructDate: constructDate,
-      disableConsoleInRelease: disableConsoleInRelease,
-      hideStackInRelease: hideStackInRelease,
+      disableConsole: disableConsole,
+      hideStack: hideStack,
       arrayBufferCopy: arrayBufferCopy,
     );
   }
@@ -67,15 +67,15 @@ abstract class Vm {
     bool? reserveUndefined,
     bool? jsonSerializeObject,
     bool? constructDate,
-    bool? disableConsoleInRelease,
-    bool? hideStackInRelease,
+    bool? disableConsole,
+    bool? hideStack,
   }) {
     return JavaScriptCoreVm(
       reserveUndefined: reserveUndefined,
       jsonSerializeObject: jsonSerializeObject,
       constructDate: constructDate,
-      disableConsoleInRelease: disableConsoleInRelease,
-      hideStackInRelease: hideStackInRelease,
+      disableConsole: disableConsole,
+      hideStack: hideStack,
     );
   }
 
@@ -83,8 +83,8 @@ abstract class Vm {
     bool? reserveUndefined,
     bool? jsonSerializeObject,
     bool? constructDate,
-    bool? disableConsoleInRelease,
-    bool? hideStackInRelease,
+    bool? disableConsole,
+    bool? hideStack,
     bool? arrayBufferCopy,
   }) {
     if (Platform.isIOS || Platform.isMacOS) {
@@ -92,16 +92,16 @@ abstract class Vm {
         reserveUndefined: reserveUndefined,
         jsonSerializeObject: jsonSerializeObject,
         constructDate: constructDate,
-        disableConsoleInRelease: disableConsoleInRelease,
-        hideStackInRelease: hideStackInRelease,
+        disableConsole: disableConsole,
+        hideStack: hideStack,
       );
     }
     return Vm.QuickJS(
       reserveUndefined: reserveUndefined,
       jsonSerializeObject: jsonSerializeObject,
       constructDate: constructDate,
-      disableConsoleInRelease: disableConsoleInRelease,
-      hideStackInRelease: hideStackInRelease,
+      disableConsole: disableConsole,
+      hideStack: hideStack,
       arrayBufferCopy: arrayBufferCopy,
     );
   }

@@ -4,11 +4,9 @@ import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
-import 'package:flutter/foundation.dart';
 import 'package:fjs/vm.dart';
 
 import '../error.dart';
-import '../promise.dart';
 import 'qjs_ffi.dart';
 import '../lifetime.dart';
 
@@ -70,15 +68,15 @@ class QuickJSVm extends Vm implements Disposable {
     bool? reserveUndefined,
     bool? jsonSerializeObject,
     bool? constructDate,
-    bool? disableConsoleInRelease,
-    bool? hideStackInRelease,
+    bool? disableConsole,
+    bool? hideStack,
     bool? arrayBufferCopy,
   }) : super(
     reserveUndefined: reserveUndefined,
     jsonSerializeObject: jsonSerializeObject,
     constructDate: constructDate,
-    disableConsoleInRelease: disableConsoleInRelease,
-    hideStackInRelease: hideStackInRelease,
+    disableConsole: disableConsole,
+    hideStack: hideStack,
     arrayBufferCopy: arrayBufferCopy,
   ) {
     if (!_initialized) {
@@ -118,7 +116,7 @@ class QuickJSVm extends Vm implements Disposable {
     final JSValuePointer console = newObject();
     setProperty(global, 'console', console);
     JSToDartFunction logFn = (List<JSValuePointer> args, {JSValuePointer? thisObj}) {
-      if(disableConsoleInRelease && kReleaseMode) {
+      if(disableConsole) {
         return;
       }
       if(_disposed) {
@@ -364,7 +362,7 @@ class QuickJSVm extends Vm implements Disposable {
     if (error is JSError) {
       message = error.message;
       name = error.name;
-      if(!hideStackInRelease || !kReleaseMode) {
+      if(!hideStack) {
         stack = error.stackTrace.toString();
       }
     } else {
