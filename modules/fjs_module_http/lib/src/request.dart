@@ -211,6 +211,10 @@ Future<NativeResponse> send(
   if(verbose) {
     print('> ${ioRequest.method.toUpperCase()} ${ioRequest.uri}\n');
     ioRequest.headers.forEach((name, values) => print('> $name: ${values.join(", ")}'));
+    if(ioRequest.cookies.isNotEmpty) {
+      String cookies = ioRequest.cookies.map((e) => '${e.name}=${e.value}').join('; ');
+      print('> cookie: $cookies');
+    }
     if(httpOptions['body'] is String && httpOptions['body'].length < 1024) {
       print('> ${httpOptions["body"]}');
     }
