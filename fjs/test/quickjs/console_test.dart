@@ -8,7 +8,7 @@ void main() {
   group('QuickJS', () {
     late QuickJSVm vm;
     setUp(() {
-      vm = QuickJSVm();
+      vm = QuickJSVm(disableConsole: false);
     });
     tearDown(() {
       vm.dispose();

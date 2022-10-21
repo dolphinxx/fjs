@@ -1,6 +1,5 @@
 import 'package:fjs/quickjs/vm.dart';
 import 'package:test/test.dart';
-import '../test_utils.dart';
 import '../tests/js_feature_tests.dart';
 
 void main() {
@@ -141,10 +140,9 @@ void main() {
       test('ES6 ClassDefinitionAndInheritance', () {
         vm.evalCode(ES6Features.ClassDefinitionAndInheritance);
       });
-      test('ES6 ClassInheritanceFromExpressions', capturePrint(() {
+      test('ES6 ClassInheritanceFromExpressions', () {
         vm.evalCode(ES6Features.ClassInheritanceFromExpressions);
-        expect(consumeLastPrint(), '7 42 1000 red');
-      }));
+      });
       test('ES6 BaseClassAccess', () {
         vm.evalCode(ES6Features.BaseClassAccess);
       });
@@ -234,16 +232,14 @@ void main() {
       });
     });
     group('ES6 Promises', () {
-      test('ES6 PromiseUsage', capturePrint(() async {
+      test('ES6 PromiseUsage', () async {
         vm.startEventLoop();
         await Future.value(vm.jsToDart(vm.evalCode(ES6Features.PromiseUsage)));
-        expect(consumeLastPrint(), 'done after 300ms: Hello Foo! Hello Bar!');
-      }));
-      test('ES6 PromiseCombination', capturePrint(() async {
+      });
+      test('ES6 PromiseCombination', () async {
         vm.startEventLoop();
         await Future.value(vm.jsToDart(vm.evalCode(ES6Features.PromiseCombination)));
-        expect(consumeLastPrint(), 'success: foo=foo.txt bar=bar.txt baz=baz.txt');
-      }));
+      });
     });
     group('ES6 Meta-Programming', () {
       test('ES6 Proxying', () {

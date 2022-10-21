@@ -489,6 +489,10 @@ var rect = new Rectangle(7, 42)
 rect.z     = 1000
 rect.color = "red"
 console.log(rect.x, rect.y, rect.z, rect.color)
+expect(rect.x, 7);
+expect(rect.y, 42);
+expect(rect.z, 1000);
+expect(rect.color, 'red');
   ''';
 
   static const BaseClassAccess = r'''

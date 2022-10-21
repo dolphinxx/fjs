@@ -3,6 +3,7 @@ import 'package:fjs/vm.dart';
 import 'package:fjs/error.dart';
 
 testErrorFromHost(Vm vm) {
+  vm.hideStack = false;
   final fnPtr = vm.newFunction(null, (args, {thisObj}) {
     var a = [];
     a as String;

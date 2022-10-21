@@ -8,7 +8,7 @@ void main() {
   group('JavaScriptCore', () {
     late JavaScriptCoreVm vm;
     setUp(() {
-      vm = JavaScriptCoreVm();
+      vm = JavaScriptCoreVm(disableConsole: false);
     });
     tearDown(() {
       vm.dispose();
