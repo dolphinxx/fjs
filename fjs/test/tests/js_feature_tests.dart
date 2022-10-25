@@ -956,10 +956,34 @@ let target = {
 let proxy = new Proxy(target, {
     get (receiver, name) {
         return name in receiver ? receiver[name] : `Hello, ${name}`
+    },
+})
+expect(proxy.foo, "Welcome, foo")
+expect(proxy.world, "Hello, world")
+  ''';
+
+  static const ProxyingForIn = r'''
+let target = {
+    foo: "Welcome, foo"
+}
+let proxy = new Proxy(target, {
+    get (receiver, name) {
+        return name in receiver ? receiver[name] : `Hello, ${name}`
+    },
+    ownKeys: function() {
+        return ["a", "b"];
+    },
+    getOwnPropertyDescriptor: function(target, key) {
+        return { enumerable: true, configurable: true, value: this[key] };
     }
 })
 expect(proxy.foo, "Welcome, foo")
 expect(proxy.world, "Hello, world")
+const iterates = [];
+for(let o in proxy) {
+  iterates.push([o, proxy[o]]);
+}
+expect(iterates, [['a', 'Hello, a'], ['b', 'Hello, b']]);
   ''';
 
   static const Reflection = r'''

@@ -234,6 +234,9 @@ void main() {
       test('ES6 Proxying', () {
         vm.evalCode(ES6Features.Proxying);
       });
+      test('ES6 for-in Proxying', () {
+        vm.evalCode(ES6Features.ProxyingForIn);
+      });
       test('ES6 Reflection', () {
         vm.evalCode(ES6Features.Reflection);
       });
