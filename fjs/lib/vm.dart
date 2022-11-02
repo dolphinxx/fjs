@@ -12,7 +12,7 @@ import 'types.dart';
 export 'types.dart';
 
 /// This function should return [Vm.$undefined] if the module is failed to resolve.
-typedef ModuleResolver = JSValuePointer Function(Vm vm, List<String> path, String? version);
+typedef ModuleResolver = JSValuePointer Function(Vm vm, String path);
 
 abstract class Vm {
   /// Whether to reserve JS undefined using [DART_UNDEFINED].
@@ -125,33 +125,22 @@ abstract class Vm {
   ModuleResolver? _universalModuleResolver;
   void _setupModuleResolver() {
     final requireFn = newFunction('require', (args, {thisObj}) {
-      String raw = jsToDart(args[0]);
+      String path = jsToDart(args[0]);
       late String moduleName;
-      late List<String> path;
-      String? version;
       // paths starts with `.` or `/` will not be parsed.
-      if(raw.codeUnitAt(0) == 46 || raw.codeUnitAt(0) == 47) {
-        moduleName = raw;
-        path = [moduleName];
+      if(path.codeUnitAt(0) == 46 || path.codeUnitAt(0) == 47) {
+        moduleName = path;
       } else {
-        path = raw.split('/');
-        String firstPath = path.first;
-        // can have an optional version suffix
-        int versionPos = firstPath.indexOf('@');
-        if(versionPos > 0) {
-          version = firstPath.substring(versionPos + 1);
-          path[0] = firstPath.substring(0, versionPos);
-        }
-        moduleName = path[0];
+        moduleName = path.split('/').first;
       }
       if (_moduleMap.containsKey(moduleName)) {
-        return _moduleMap[moduleName]!.resolve(this, path, version);
+        return _moduleMap[moduleName]!.resolve(this, path);
       }
       if (_moduleResolverMap.containsKey(moduleName)) {
-        return _moduleResolverMap[moduleName]!(this, path, version);
+        return _moduleResolverMap[moduleName]!(this, path);
       }
       if (_universalModuleResolver != null) {
-        return _universalModuleResolver!(this, path, version);
+        return _universalModuleResolver!(this, path);
       }
       return $undefined;
     });

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:fjs/error.dart';
 import 'package:fjs/vm.dart';
-import 'package:fjs/types.dart';
 import 'package:fjs/module.dart';
 
 import 'request.dart';
@@ -50,7 +49,7 @@ class FlutterJSHttpModule implements FlutterJSModule{
 
   final String name = 'http';
 
-  JSValuePointer resolve(Vm vm, List<String> path, String? version) {
+  JSValuePointer resolve(Vm vm, String path) {
     return vm.dartToJS({
       'send': vm.newFunction('send', (args, {thisObj}) {
         dynamic args0 = vm.jsToDart(args[0]);

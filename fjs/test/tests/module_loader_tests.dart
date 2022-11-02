@@ -8,7 +8,7 @@ class GreetingModule extends FlutterJSModule {
   final String name = 'greeting';
   JSValuePointer? cache;
 
-  JSValuePointer resolve(Vm vm, List<String> path, String? version) {
+  JSValuePointer resolve(Vm vm, String path) {
     return cache = cache ??
         vm.newFunction(null, (args, {thisObj}) {
           return vm.dartToJS('Hello ${vm.jsToDart(args[0])}!');
@@ -20,7 +20,7 @@ class AsyncGreetingModule extends FlutterJSModule {
   final String name = 'async_greeting';
 
   @override
-  JSValuePointer resolve(Vm vm, List<String> path, String? version) {
+  JSValuePointer resolve(Vm vm, String path) {
     return vm
         .newPromise(Future.delayed(
             Duration(seconds: 2),
@@ -57,12 +57,12 @@ testAsync(Vm vm) async {
 }
 
 testUniversal(Vm vm) async {
-  vm.registerModuleResolver('greeting', (vm, path, version) => vm.newFunction('greeting', (args, {thisObj}) => vm.dartToJS('Hello ${vm.jsToDart(args[0])}!')));
-  vm.registerModuleResolver('', (vm, path, version) {
-    File file = File('test/modules/${path.join("/")}.js');
+  vm.registerModuleResolver('greeting', (vm, path) => vm.newFunction('greeting', (args, {thisObj}) => vm.dartToJS('Hello ${vm.jsToDart(args[0])}!')));
+  vm.registerModuleResolver('', (vm, path) {
+    File file = File('test/modules/$path.js');
     if(file.existsSync()) {
       String source = file.readAsStringSync();
-      return vm.evalCode('var exports = {};$source;exports', filename: '<${path.join("/")}.js>');
+      return vm.evalCode('var exports = {};$source;exports', filename: '<$path.js>');
     }
     return vm.$undefined;
   });

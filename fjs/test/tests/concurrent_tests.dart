@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:math';
 
-import 'package:fjs/error.dart';
 import 'package:fjs/vm.dart';
 
 Future<void> _setTimeout(int i, Vm vmProvider()) async {
@@ -23,7 +22,7 @@ Future<void> _throws(int i, Vm vmProvider()) async {
 
 Future<void> _crypto(int i, Vm vmProvider()) async {
   Vm vm = vmProvider();
-  vm.registerModuleResolver('crypto-js', (vm, path, version) {
+  vm.registerModuleResolver('crypto-js', (vm, path) {
     return vm.evalCode(File('test/crypto-js-3.3.0.js').readAsStringSync());
   });
   vm.jsToDart(vm.evalCode('''
