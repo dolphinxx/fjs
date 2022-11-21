@@ -10,9 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  ffi: "^1.0.0"
-  http: ^0.13.1
-  sync_http: ^0.3.0
+  ffi: ^2.0.1
   fjs_platform_interface:
     path: ../fjs_platform_interface
   fjs_linux:
