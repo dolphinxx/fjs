@@ -31,6 +31,9 @@ abstract class Vm {
   /// Set to true to use JS_ArrayBufferCopy to construct an ArrayBuffer.
   bool arrayBufferCopy = false;
 
+  /// console.log delegate
+  void Function(String msg) consoleLogFn = (msg) => print(msg);
+
   Vm({
     bool? reserveUndefined,
     bool? jsonSerializeObject,

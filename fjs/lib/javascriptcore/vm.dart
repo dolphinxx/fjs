@@ -192,7 +192,7 @@ return 0
           return '<toString failed>';
         }
       }).join(' ');
-      print(msg);
+      consoleLogFn(msg);
     };
     final JSValueRef log = newFunction(null, logFn);
     setProperty(console, 'log', log);

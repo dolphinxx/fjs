@@ -129,7 +129,7 @@ class QuickJSVm extends Vm implements Disposable {
           return '<toString failed>';
         }
       }).join(' ');
-      print(msg);
+      consoleLogFn(msg);
     };
     final JSValuePointer log = newFunction('log', logFn);
     setProperty(console, 'log', log);
