@@ -177,8 +177,12 @@ Future<NativeResponse> send(
 
   var ioRequest = (await client.openUrl(method, uri));
   abortController?.attach(ioRequest);
+  String? headerCookie;
   // copy headers
   requestHeaders.forEach((key, value) {
+    if(key == 'cookie' || key =='Cookie') {
+      headerCookie = value;
+    }
     ioRequest.headers.set(key, value);
   });
   if(httpOptions.containsKey('followRedirects')) {
@@ -205,7 +209,22 @@ Future<NativeResponse> send(
   }
 
   if(clientOptions['followCookies'] != false && cookieManager != null) {
-    ioRequest.cookies.addAll(await cookieManager.get(uri));
+    List<Cookie> existCookies = await cookieManager.get(uri);
+    if(existCookies.isNotEmpty) {
+      // Fix when both header and ioRequest.cookies contain cookies, they are concatenated with `,` instead of `; `
+      if(headerCookie != null) {
+        ioRequest.headers.remove('cookie', headerCookie!);
+        if(headerCookie!.isNotEmpty) {
+          for(String _ in headerCookie!.split(';')) {
+            int s = _.indexOf('=');
+            if(s != -1) {
+              ioRequest.cookies.add(Cookie(_.substring(0, s).trim(), _.substring(s + 1).trim())..httpOnly = false);
+            }
+          }
+        }
+      }
+      ioRequest.cookies.addAll(existCookies);
+    }
   }
 
   if(verbose) {

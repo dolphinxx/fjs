@@ -482,3 +482,40 @@ testCookie(Vm vm, HttpServer server) async {
     }
   ]);
 }
+
+testFollowCookie(Vm vm, HttpServer server) async {
+  List<List<String>?> cookies = [];
+  int i = 0;
+  requestHandler = (request, response) async {
+    if (request.requestedUri.path == '/follow_cookie') {
+      cookies.add(request.headers['cookie']);
+      if(request.cookies.where((_) => _.name == 'greeting').isEmpty) {
+        response.cookies.add(Cookie('greeting', Uri.encodeComponent('Hello Flutter ${++i} times!'))..httpOnly = false);
+      }
+      response.contentLength = 3;
+      response.statusCode = 200;
+      response.write('OK!');
+      return true;
+    }
+    return false;
+  };
+  final source = '''
+      (async function() {
+        const {send} = require('http');
+        const url = 'http://${server.address.address}:${server.port}/follow_cookie';
+        const response1 = await send({url}, {followCookie: true});
+        const response2 = await send({url, headers: {'Cookie': 'id=123456; name=Flutter'}}, {followCookie: true});
+        return {response1, response2}
+      }())
+      ''';
+  vm.startEventLoop();
+  await vm.jsToDart(vm.evalCode(source, filename: '<test>'));
+  expect(i, 1);
+  expect(cookies[0], isNull);
+  expect(cookies[1], hasLength(1));
+  expect(cookies[1]!.first.split('; '), containsAll([
+    'id=123456',
+    'name=Flutter',
+    'greeting=Hello%20Flutter%201%20times!',
+  ]));
+}

@@ -85,8 +85,11 @@ void main() {
       } catch (_) {}
       server.close();
     });
-    test('cookie', () async {
+    test('/cookie', () async {
       await testCookie(vm, server);
+    }, timeout: Timeout(Duration(seconds: 100)));
+    test('/follow cookie', () async {
+      await testFollowCookie(vm, server);
     }, timeout: Timeout(Duration(seconds: 100)));
   });
 }
