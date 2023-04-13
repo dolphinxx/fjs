@@ -254,8 +254,9 @@ Future<NativeResponse> send(
     response = responseInterceptor(response, httpOptions, clientOptions);
   }
   var responseHeaders = <String, String>{};
+  const List<String> specialHeaders = ['set-cookie', 'Set-Cookie', 'www-authenticate', 'WWW-Authenticate', 'proxy-authenticate', 'Proxy-Authenticate'];
   response.headers.forEach((key, values) {
-    responseHeaders[key.toLowerCase()] = values.join(',');
+    responseHeaders[key.toLowerCase()] = values.join(specialHeaders.contains(key) ? '\n' : ', ');
   });
 
   String? responseContentType;
